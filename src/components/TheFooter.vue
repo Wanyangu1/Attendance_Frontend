@@ -1,5 +1,5 @@
 <template>
-  <footer class="bg-gradient-to-b from-[#1f7465] to-[#1a6457] text-white pt-16 pb-8">
+  <footer class="bg-gray-900 text-white pt-16 pb-8">
     <div class="max-w-7xl mx-auto px-6">
       <!-- Main Footer Content -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
@@ -8,29 +8,29 @@
           <div class="flex items-center space-x-3">
             <img src="@/assets/logos/logo1.png" class="h-10" alt="City Radius CHS Logo" />
           </div>
-          <p class="text-[#c1e0db] leading-relaxed">
+          <p class="text-gray-300 leading-relaxed">
             Providing exceptional community healthcare services with compassion and professionalism since 2005.
           </p>
           <div class="flex space-x-3 pt-2">
             <a v-for="social in socialLinks" :key="social.name" :href="social.url" target="_blank"
-              class="bg-white/10 hover:bg-[#e59d50] rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 hover:scale-105"
+              class="bg-gray-700 hover:bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 hover:scale-105"
               :aria-label="social.name">
-              <i :class="social.icon + ' text-lg'"></i>
+              <i :class="social.icon + ' text-lg text-white'"></i>
             </a>
           </div>
         </div>
 
         <!-- Quick Links -->
         <div>
-          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-white/20 flex items-center">
-            <i class="fas fa-link text-[#e59d50] mr-2"></i>
+          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-gray-700 flex items-center">
+            <i class="fas fa-link text-blue-400 mr-2"></i>
             Quick Links
           </h3>
           <ul class="space-y-4">
             <li v-for="link in quickLinks" :key="link.text">
               <router-link :to="link.to"
-                class="flex items-center space-x-3 group hover:text-white transition-colors text-[#c1e0db]">
-                <div class="w-2 h-2 rounded-full bg-[#e59d50] opacity-0 group-hover:opacity-100 transition-opacity">
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
+                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 </div>
                 <span>{{ link.text }}</span>
               </router-link>
@@ -40,15 +40,15 @@
 
         <!-- Services -->
         <div>
-          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-white/20 flex items-center">
-            <i class="fas fa-hand-holding-medical text-[#e59d50] mr-2"></i>
+          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-gray-700 flex items-center">
+            <i class="fas fa-hand-holding-medical text-blue-400 mr-2"></i>
             Our Services
           </h3>
           <ul class="space-y-4">
             <li v-for="service in services" :key="service.text">
               <router-link :to="service.to"
-                class="flex items-center space-x-3 group hover:text-white transition-colors text-[#c1e0db]">
-                <div class="w-2 h-2 rounded-full bg-[#e59d50] opacity-0 group-hover:opacity-100 transition-opacity">
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
+                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 </div>
                 <span>{{ service.text }}</span>
               </router-link>
@@ -58,37 +58,46 @@
 
         <!-- Contact Info -->
         <div>
-          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-white/20 flex items-center">
-            <i class="fas fa-headset text-[#e59d50] mr-2"></i>
+          <h3 class="text-lg font-semibold mb-6 pb-2 border-b border-gray-700 flex items-center">
+            <i class="fas fa-headset text-blue-400 mr-2"></i>
             Contact Us
           </h3>
           <ul class="space-y-5">
             <li class="flex items-start space-x-4">
-              <div class="bg-[#e59d50]/20 p-2 rounded-full flex-shrink-0">
-                <i class="fas fa-phone-alt text-[#e59d50] text-sm"></i>
+              <div class="bg-blue-400/20 p-2 rounded-full flex-shrink-0">
+                <i class="fas fa-phone-alt text-blue-400 text-sm"></i>
               </div>
               <div>
                 <p class="font-medium text-white">Phone</p>
-                <a href="tel:+254700000000" class="text-[#c1e0db] hover:text-white">+254 700 000 000</a>
+                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+254 700 000 000</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
-              <div class="bg-[#e59d50]/20 p-2 rounded-full flex-shrink-0">
-                <i class="fas fa-envelope text-[#e59d50] text-sm"></i>
+              <div class="bg-blue-400/20 p-2 rounded-full flex-shrink-0">
+                <i class="fas fa-envelope text-blue-400 text-sm"></i>
               </div>
               <div>
                 <p class="font-medium text-white">Email</p>
                 <a href="mailto:info@cityradiuschs.org"
-                  class="text-[#c1e0db] hover:text-white">info@cityradiuschs.org</a>
+                  class="text-gray-300 hover:text-blue-300">info@cityradiuschs.org</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
-              <div class="bg-[#e59d50]/20 p-2 rounded-full flex-shrink-0">
-                <i class="fas fa-map-marker-alt text-[#e59d50] text-sm"></i>
+              <div class="bg-blue-400/20 p-2 rounded-full flex-shrink-0">
+                <i class="fas fa-map-marker-alt text-blue-400 text-sm"></i>
               </div>
               <div>
                 <p class="font-medium text-white">Location</p>
-                <p class="text-[#c1e0db]">Nairobi, Kenya</p>
+                <p class="text-gray-300">Nairobi, Kenya</p>
+              </div>
+            </li>
+            <li class="flex items-start space-x-4">
+              <div class="bg-blue-400/20 p-2 rounded-full flex-shrink-0">
+                <i class="fas fa-clock text-blue-400 text-sm"></i>
+              </div>
+              <div>
+                <p class="font-medium text-white">Hours</p>
+                <p class="text-gray-300">Mon-Fri: 8am - 5pm</p>
               </div>
             </li>
           </ul>
@@ -96,25 +105,28 @@
       </div>
 
       <!-- Divider -->
-      <div class="border-t border-white/10 my-8"></div>
+      <div class="border-t border-gray-700 my-8"></div>
 
       <!-- Bottom Footer -->
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="mb-4 md:mb-0">
-          <p class="text-sm text-[#a8d5cc]">
+          <p class="text-sm text-gray-400">
             &copy; {{ new Date().getFullYear() }} City Radius Community Health Service. All rights reserved.
           </p>
         </div>
 
-        <div class="flex space-x-6">
-          <router-link to="/privacy" class="text-[#a8d5cc] hover:text-white text-sm transition-colors">
+        <div class="flex flex-wrap gap-4 justify-center">
+          <router-link to="/privacy" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
             Privacy Policy
           </router-link>
-          <router-link to="/terms" class="text-[#a8d5cc] hover:text-white text-sm transition-colors">
+          <router-link to="/terms" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
             Terms of Service
           </router-link>
-          <router-link to="/accessibility" class="text-[#a8d5cc] hover:text-white text-sm transition-colors">
+          <router-link to="/accessibility" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
             Accessibility
+          </router-link>
+          <router-link to="/sitemap" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
+            Sitemap
           </router-link>
         </div>
       </div>
@@ -130,7 +142,8 @@ export default {
         { name: 'Facebook', url: 'https://facebook.com/cityradiuschs', icon: 'fab fa-facebook-f' },
         { name: 'Twitter', url: 'https://twitter.com/cityradiuschs', icon: 'fab fa-twitter' },
         { name: 'Instagram', url: 'https://instagram.com/cityradiuschs', icon: 'fab fa-instagram' },
-        { name: 'LinkedIn', url: 'https://linkedin.com/company/cityradiuschs', icon: 'fab fa-linkedin-in' }
+        { name: 'LinkedIn', url: 'https://linkedin.com/company/cityradiuschs', icon: 'fab fa-linkedin-in' },
+        { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' }
       ],
       quickLinks: [
         { text: 'About Us', to: '/about' },
@@ -169,7 +182,7 @@ footer {
   bottom: -2px;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #e59d50, transparent);
+  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
 }
 
 /* Smooth hover transitions */
@@ -178,22 +191,39 @@ button {
   transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
 }
 
+/* Animation for social icons */
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .hover-scale:hover {
-  transform: translateY(-2px);
+  animation: float 1s ease-in-out infinite;
 }
 
-/* Custom scrollbar for footer (if needed) */
-footer::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-footer::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
+@media (max-width: 480px) {
+  .grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
 
-footer::-webkit-scrollbar-thumb {
-  background: #e59d50;
-  border-radius: 3px;
+  .flex-wrap {
+    justify-content: center;
+  }
 }
 </style>

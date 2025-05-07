@@ -95,48 +95,17 @@ const handleLogin = async () => {
 
           <!-- Card Body -->
           <div class="p-8">
-
             <!-- Current Time Display (Mobile) -->
             <div class="md:hidden bg-blue-50 p-4 rounded-lg mb-6 text-center">
               <p class="text-sm text-blue-800">Current Date & Time:</p>
               <p class="text-lg font-mono text-blue-900">{{ currentDateTime }}</p>
             </div>
 
-            <!-- Attendance Type Selector -->
-            <div class="mb-6 bg-blue-50 p-4 rounded-lg">
-              <label class="block text-sm font-medium text-blue-800 mb-2">Attendance Type</label>
-              <div class="flex space-x-4">
-                <label class="flex-1">
-                  <input type="radio" v-model="attendanceType" value="check-in" class="sr-only peer">
-                  <div
-                    class="p-3 text-center rounded-lg border border-blue-200 peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-checked:text-white cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Check In
-                  </div>
-                </label>
-                <label class="flex-1">
-                  <input type="radio" v-model="attendanceType" value="check-out" class="sr-only peer">
-                  <div
-                    class="p-3 text-center rounded-lg border border-blue-200 peer-checked:border-blue-600 peer-checked:bg-blue-600 peer-checked:text-white cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24"
-                      stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                    </svg>
-                    Check Out
-                  </div>
-                </label>
-              </div>
-            </div>
-
             <!-- Login Form -->
             <form @submit.prevent="handleLogin" class="space-y-6">
               <!-- Employee ID Field -->
               <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Employee Email</label>
                 <div class="relative">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
