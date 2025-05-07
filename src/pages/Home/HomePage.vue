@@ -47,6 +47,26 @@ const notification = ref({
   type: 'success'
 })
 
+// Add these computed properties
+const ratePerHour = computed(() => {
+  return recentDays.value[0]?.rate_per_hour || 0;
+});
+
+const formattedRate = computed(() => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(ratePerHour.value);
+});
+
+const biweeklyTotalHours = computed(() => {
+  return recentDays.value[0]?.biweekly_total_hours || 80; // Default to 80 if not set
+});
+
+const biweeklyProgress = computed(() => {
+  return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100);
+});
+
 // Computed Properties
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('en-US', {
@@ -58,7 +78,9 @@ const currentDate = computed(() => {
 })
 
 const biweeklyHours = computed(() => {
-  return recentDays.value.reduce((total, day) => total + day.hours, 0)
+  return recentDays.value.reduce((total, day) => {
+    return total + (day.hours || 0)
+  }, 0)
 })
 
 const todayHours = computed(() => {
@@ -196,7 +218,9 @@ const fetchTimeRecords = async () => {
         checkIn: record.check_in || '--:-- --',
         checkOut: record.check_out || null,
         hours: parseFloat(record.hours_worked) || 0,
-        status: record.check_out ? 'Completed' : 'In Progress'
+        status: record.check_out ? 'Completed' : 'In Progress',
+        rate_per_hour: parseFloat(record.rate_per_hour) || 0,
+        biweekly_total_hours: parseFloat(record.biweekly_total_hours) || 80
       }
     })
 
@@ -516,15 +540,25 @@ onMounted(() => {
                 </svg>
               </div>
             </div>
+
+            <!-- Add Rate Per Hour Display -->
+            <div class="mb-4">
+              <p class="text-sm font-medium text-gray-500">Rate Per Hour</p>
+              <p class="text-xl font-bold text-green-600">{{ formattedRate }}</p>
+            </div>
+
             <div>
               <div class="flex items-center justify-between mb-1">
-                <span class="text-xs font-medium text-gray-500">Progress to 80 hours</span>
-                <span class="text-xs font-medium text-gray-500">{{ Math.min(100, Math.round((biweeklyHours / 80) * 100))
-                  }}%</span>
+                <span class="text-xs font-medium text-gray-500">
+                  Progress to {{ biweeklyTotalHours }} hours
+                </span>
+                <span class="text-xs font-medium text-gray-500">
+                  {{ Math.round(biweeklyProgress) }}%
+                </span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2.5">
                 <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full"
-                  :style="{ width: `${Math.min(100, (biweeklyHours / 80) * 100)}%` }"></div>
+                  :style="{ width: `${biweeklyProgress}%` }"></div>
               </div>
             </div>
           </div>
@@ -703,7 +737,7 @@ onMounted(() => {
               <div>
                 <h3 class="text-lg font-semibold text-indigo-800">Currently Working</h3>
                 <p class="text-sm text-indigo-600 font-medium">Checked in at <span class="text-indigo-800 font-bold">{{
-                    todayCheckIn }}</span></p>
+                  todayCheckIn }}</span></p>
               </div>
             </div>
             <div class="text-center md:text-right">
