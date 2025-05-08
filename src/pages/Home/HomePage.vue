@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import axiosInstance from '@/axiosconfig/axiosInstance'
 import TheNavbar from '@/components/TheNavbar.vue'
 import TheFooter from '@/components/TheFooter.vue'
+import EmployeeInfo from '@/components/EmployeeInfo.vue'
 
 // Employee data structure
 const employee = ref({
@@ -46,6 +47,84 @@ const notification = ref({
   message: '',
   type: 'success'
 })
+// Reactive states
+const isTimerPaused = ref(false)
+const pauseStartTime = ref(null)
+const timeAway = ref(0) // Will store minutes as integer
+const pauseReason = ref('')
+const showPauseModal = ref(false)
+const showResumeModal = ref(false)
+const userId = ref(null)
+
+// Open pause modal
+const openPauseModal = () => {
+  showPauseModal.value = true
+}
+
+// Pause the timer
+const pauseTimer = async () => {
+  if (!pauseReason.value.trim()) {
+    showNotification('Please enter a reason for pausing', 'error')
+    return
+  }
+
+  pauseStartTime.value = new Date()
+  isTimerPaused.value = true
+  showPauseModal.value = false
+
+  try {
+    await axiosInstance.post('api/attendance/pause/', {
+      reason: pauseReason.value,
+      pause_time: pauseStartTime.value.toISOString(),
+      user: userId.value,
+      user_name: employee.value.name
+    })
+
+    showNotification('Timer paused successfully')
+    pauseReason.value = ''
+  } catch (error) {
+    console.error('Error pausing timer:', error)
+    showNotification('Failed to pause timer', 'error')
+  }
+}
+
+// Trigger resume process
+const resumeTimer = () => {
+  if (!pauseStartTime.value) {
+    showNotification('No pause start time found.', 'error')
+    return
+  }
+
+  const now = new Date()
+  // Calculate time away in minutes as integer
+  timeAway.value = Math.round((now - new Date(pauseStartTime.value)) / (1000 * 60))
+  showResumeModal.value = true
+}
+
+// Confirm resume and send to backend
+const confirmResume = async () => {
+  const resumeTime = new Date()
+
+  try {
+    await axiosInstance.post('api/attendance/resume/', {
+      time_record: timeAway.value, // Now sending as integer minutes
+      pause_reason: pauseReason.value,
+      resume_time: resumeTime.toISOString(),
+      user: userId.value,
+      user_name: employee.value.name
+    })
+
+    isTimerPaused.value = false
+    pauseStartTime.value = null
+    showResumeModal.value = false
+    timeAway.value = 0
+
+    showNotification('Timer resumed successfully')
+  } catch (error) {
+    console.error('Error resuming timer:', error)
+    showNotification('Failed to resume timer', 'error')
+  }
+}
 
 // Add these computed properties
 const ratePerHour = computed(() => {
@@ -98,16 +177,16 @@ const todayHours = computed(() => {
 
 const currentSessionHours = computed(() => {
   if (!todayCheckIn.value || todayCheckOut.value) return 0
-  const now = new Date()
-  const diff = now - new Date(currentSessionStart.value)
-  return diff / (1000 * 60 * 60)
-})
 
-const formattedPhone = computed(() => {
-  if (!employee.value.phone) return ''
-  const cleaned = ('' + employee.value.phone).replace(/\D/g, '')
-  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-  return match ? `(${match[1]}) ${match[2]}-${match[3]}` : employee.value.phone
+  const now = new Date()
+  let diff = now - new Date(currentSessionStart.value)
+
+  // Subtract paused time if timer is paused
+  if (isTimerPaused.value && pauseStartTime.value) {
+    diff -= (now - new Date(pauseStartTime.value))
+  }
+
+  return diff / (1000 * 60 * 60)
 })
 
 // Helper Methods
@@ -186,6 +265,7 @@ const fetchEmployeeData = async () => {
     employee.value.name = profileResponse.data.name || ''
     employee.value.email = profileResponse.data.email || ''
     employee.value.phone = profileResponse.data.phone || ''
+    userId.value = profileResponse.data.id || null // Set user ID from profile
 
     // Fetch settings data
     await fetchSettings()
@@ -326,17 +406,13 @@ const showTimeHistory = async () => {
     console.error('Error refreshing time records:', err)
   }
 }
-
-// Initialization
 onMounted(() => {
   fetchEmployeeData()
-
-  // Update current session timer every minute
   setInterval(() => {
-    // This will force computed properties to update
   }, 60000)
 })
 </script>
+
 <template>
   <TheNavbar />
   <div class="min-h-screen bg-gray-50">
@@ -403,126 +479,13 @@ onMounted(() => {
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <!-- Employee Information Section with enhanced design -->
-      <div class="bg-white shadow-xl rounded-xl overflow-hidden mb-8 transition-all duration-300 hover:shadow-2xl">
-        <div class="px-6 py-5 bg-gradient-to-r from-blue-200 to-indigo-200">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-700">Employee Information</h2>
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Last updated: {{ currentDate }}
-            </span>
-          </div>
-        </div>
-        <div class="px-6 py-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-          <!-- Address Information Card -->
-          <div
-            class="bg-gray-50 p-5 rounded-lg border border-gray-200 transition-all duration-300 hover:border-blue-300">
-            <div class="flex items-center mb-4">
-              <div class="bg-blue-100 p-2 rounded-full mr-3">
-                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <h3 class="text-lg font-medium text-gray-800">Address Information</h3>
-            </div>
-            <div class="space-y-4">
-              <div class="grid grid-cols-3 gap-4">
-                <p class="text-sm font-medium text-gray-500">Street Address</p>
-                <p class="col-span-2 text-sm text-gray-700">
-                  {{ employee.address.street || 'Not specified' }}
-                </p>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <p class="text-sm font-medium text-gray-500">Address 2</p>
-                <p class="col-span-2 text-sm text-gray-400">
-                  {{ employee.address.street2 || '-' }}
-                </p>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <p class="text-sm font-medium text-gray-500">City, ST ZIP</p>
-                <p class="col-span-2 text-sm text-gray-700">
-                  <span v-if="employee.address.city && employee.address.state && employee.address.zip">
-                    {{ employee.address.city }}, {{ employee.address.state }} {{ employee.address.zip }}
-                  </span>
-                  <span v-else class="text-gray-400">Not specified</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Personal Information Card -->
-          <div class="space-y-6">
-            <div
-              class="bg-gray-50 p-5 rounded-lg border border-gray-200 transition-all duration-300 hover:border-blue-300">
-              <div class="flex items-center mb-4">
-                <div class="bg-indigo-100 p-2 rounded-full mr-3">
-                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h3 class="text-lg font-medium text-gray-800">Personal Information</h3>
-              </div>
-              <div class="space-y-4">
-                <div class="grid grid-cols-3 gap-4">
-                  <p class="text-sm font-medium text-gray-500">Employee</p>
-                  <p class="col-span-2 text-sm text-gray-700">{{ employee.name || 'Not specified' }}</p>
-                </div>
-                <div class="grid grid-cols-3 gap-4">
-                  <p class="text-sm font-medium text-gray-500">Phone</p>
-                  <p class="col-span-2 text-sm text-gray-700">{{ formattedPhone || '-' }}</p>
-                </div>
-                <div class="grid grid-cols-3 gap-4">
-                  <p class="text-sm font-medium text-gray-500">Email</p>
-                  <p class="col-span-2 text-sm text-gray-700">{{ employee.email || '-' }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="bg-gray-50 p-5 rounded-lg border border-gray-200 transition-all duration-300 hover:border-blue-300">
-              <div class="flex items-center mb-4">
-                <div class="bg-purple-100 p-2 rounded-full mr-3">
-                  <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 class="text-lg font-medium text-gray-800">Employment Details</h3>
-              </div>
-              <div class="space-y-4">
-                <div class="grid grid-cols-3 gap-4">
-                  <p class="text-sm font-medium text-gray-500">Manager</p>
-                  <p class="col-span-2 text-sm text-gray-700">
-                    {{ employee.employment.manager || 'Not specified' }}
-                  </p>
-                </div>
-                <div class="grid grid-cols-3 gap-4">
-                  <p class="text-sm font-medium text-gray-500">Pay Period</p>
-                  <p class="col-span-2 text-sm text-gray-700">
-                    <span v-if="employee.employment.payPeriodStart && employee.employment.payPeriodEnd">
-                      {{ employee.employment.payPeriodStart }} - {{ employee.employment.payPeriodEnd }}
-                    </span>
-                    <span v-else class="text-gray-400">Not available</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <EmployeeInfo :employee="employee" :loading="loading" :error="error" />
 
       <!-- Stats Cards Section with enhanced animations -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 mt-10 gap-6 mb-8">
         <!-- Current Pay Period Hours Card -->
-        <div class="bg-white shadow-lg rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div id="hoursworked"
+          class="bg-white shadow-lg rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl">
           <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <h2 class="text-lg font-semibold text-gray-800">Current Pay Period</h2>
           </div>
@@ -745,6 +708,91 @@ onMounted(() => {
               <p class="text-3xl font-bold text-indigo-700 animate-pulse">{{ formatHours(currentSessionHours) }}</p>
             </div>
           </div>
+          <!-- Add pause/resume buttons -->
+          <div class="flex justify-center space-x-4 mt-4">
+            <button v-if="!isTimerPaused" @click="openPauseModal"
+              class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center">
+              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Pause Timer
+            </button>
+
+            <button v-else @click="resumeTimer"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
+              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Resume Timer
+            </button>
+          </div>
+
+          <!-- Show paused status if timer is paused -->
+          <div v-if="isTimerPaused" class="mt-4 text-center">
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+              <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Timer Paused
+            </span>
+          </div>
+        </div>
+      </transition>
+      <!-- Pause Timer Modal -->
+      <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
+        leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showPauseModal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Pause Timer</h3>
+            <p class="text-sm text-gray-500 mb-4">Please provide a reason for pausing your timer:</p>
+
+            <textarea v-model="pauseReason" rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter reason..."></textarea>
+
+            <div class="mt-6 flex justify-end space-x-3">
+              <button @click="showPauseModal = false" type="button"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Cancel
+              </button>
+              <button @click="pauseTimer" type="button"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                Confirm Pause
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- Resume Timer Modal -->
+      <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
+        leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showResumeModal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Resume Timer</h3>
+            <p class="text-sm text-gray-500 mb-2">You were away for:</p>
+            <p class="text-2xl font-bold text-blue-600 mb-6">{{ formatHours(timeAway) }}</p>
+            <p class="text-sm text-gray-500 mb-4">This time will be deducted from your working hours.</p>
+
+            <div class="mt-6 flex justify-end space-x-3">
+              <button @click="showResumeModal = false" type="button"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Cancel
+              </button>
+              <button @click="confirmResume" type="button"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                Confirm Resume
+              </button>
+            </div>
+          </div>
         </div>
       </transition>
     </main>
@@ -753,24 +801,22 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Enhanced custom styling with animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(20px)
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0)
   }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.5s ease-out;
+  animation: fadeInUp .5s ease-out
 }
 
-/* Smooth transitions for all interactive elements */
 button,
 a,
 input,
@@ -778,51 +824,47 @@ select,
 textarea,
 .transition-all {
   transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+  transition-duration: 200ms
 }
 
-/* Enhanced card shadows */
 .shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06)
 }
 
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -2px rgba(0, 0, 0, .05)
 }
 
 .shadow-xl {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, .1), 0 10px 10px -5px rgba(0, 0, 0, .04)
 }
 
 .shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25)
 }
 
-/* Custom pulse animation */
 @keyframes pulse {
 
   0%,
   100% {
-    opacity: 1;
+    opacity: 1
   }
 
   50% {
-    opacity: 0.7;
+    opacity: .7
   }
 }
 
 .animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite
 }
 
-/* Hover effects */
 .hover\:scale-\[1\.02\]:hover {
-  transform: scale(1.02);
+  transform: scale(1.02)
 }
 
-/* Backdrop blur for modals */
 .backdrop-blur-sm {
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px)
 }
 </style>

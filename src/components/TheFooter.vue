@@ -69,7 +69,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Phone</p>
-                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+254 700 000 000</a>
+                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+1(536) 000 000</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -88,7 +88,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Location</p>
-                <p class="text-gray-300">Nairobi, Kenya</p>
+                <p class="text-gray-300">Arizona, USA</p>
               </div>
             </li>
             <li class="flex items-start space-x-4">

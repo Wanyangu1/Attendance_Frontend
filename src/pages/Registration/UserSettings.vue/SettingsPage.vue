@@ -137,7 +137,7 @@ onMounted(fetchSettings)
             <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-6">
               <!-- Street Address -->
               <div class="sm:col-span-6">
-                <label for="street_address" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label for="street_address" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <font-awesome-icon :icon="['fas', 'map-marker-alt']" class="mr-2 text-gray-400" />
                   Street Address
                 </label>
@@ -158,7 +158,7 @@ onMounted(fetchSettings)
 
               <!-- City -->
               <div class="sm:col-span-3">
-                <label for="city" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label for="city" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <font-awesome-icon :icon="['fas', 'city']" class="mr-2 text-gray-400" />
                   City
                 </label>
@@ -169,7 +169,7 @@ onMounted(fetchSettings)
 
               <!-- State -->
               <div class="sm:col-span-2">
-                <label for="state" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label for="state" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <font-awesome-icon :icon="['fas', 'flag']" class="mr-2 text-gray-400" />
                   State
                 </label>
@@ -180,7 +180,7 @@ onMounted(fetchSettings)
 
               <!-- ZIP Code -->
               <div class="sm:col-span-1">
-                <label for="zip_code" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label for="zip_code" class="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <font-awesome-icon :icon="['fas', 'mail-bulk']" class="mr-2 text-gray-400" />
                   ZIP Code
                 </label>
