@@ -15,12 +15,12 @@ const employee = ref({
     street2: '',
     city: '',
     state: '',
-    zip: ''
+    zip: '',
   },
   employment: {
     manager: '',
     payPeriodStart: '',
-    payPeriodEnd: ''
+    payPeriodEnd: '',
   },
   settings: {
     id: null,
@@ -30,8 +30,8 @@ const employee = ref({
     state: '',
     zip_code: '',
     manager_name: '',
-    user: null
-  }
+    user: null,
+  },
 })
 
 // UI State
@@ -45,7 +45,7 @@ const payPeriod = ref({ start: '', end: '' })
 const notification = ref({
   show: false,
   message: '',
-  type: 'success'
+  type: 'success',
 })
 // Reactive states
 const isTimerPaused = ref(false)
@@ -77,7 +77,7 @@ const pauseTimer = async () => {
       reason: pauseReason.value,
       pause_time: pauseStartTime.value.toISOString(),
       user: userId.value,
-      user_name: employee.value.name
+      user_name: employee.value.name,
     })
 
     showNotification('Timer paused successfully')
@@ -111,7 +111,7 @@ const confirmResume = async () => {
       pause_reason: pauseReason.value,
       resume_time: resumeTime.toISOString(),
       user: userId.value,
-      user_name: employee.value.name
+      user_name: employee.value.name,
     })
 
     isTimerPaused.value = false
@@ -128,23 +128,23 @@ const confirmResume = async () => {
 
 // Add these computed properties
 const ratePerHour = computed(() => {
-  return recentDays.value[0]?.rate_per_hour || 0;
-});
+  return recentDays.value[0]?.rate_per_hour || 0
+})
 
 const formattedRate = computed(() => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD'
-  }).format(ratePerHour.value);
-});
+    currency: 'USD',
+  }).format(ratePerHour.value)
+})
 
 const biweeklyTotalHours = computed(() => {
-  return recentDays.value[0]?.biweekly_total_hours || 80; // Default to 80 if not set
-});
+  return recentDays.value[0]?.biweekly_total_hours || 80 // Default to 80 if not set
+})
 
 const biweeklyProgress = computed(() => {
-  return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100);
-});
+  return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100)
+})
 
 // Computed Properties
 const currentDate = computed(() => {
@@ -152,7 +152,7 @@ const currentDate = computed(() => {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   })
 })
 
@@ -183,7 +183,7 @@ const currentSessionHours = computed(() => {
 
   // Subtract paused time if timer is paused
   if (isTimerPaused.value && pauseStartTime.value) {
-    diff -= (now - new Date(pauseStartTime.value))
+    diff -= now - new Date(pauseStartTime.value)
   }
 
   return diff / (1000 * 60 * 60)
@@ -194,7 +194,7 @@ const showNotification = (message, type = 'success') => {
   notification.value = {
     show: true,
     message,
-    type
+    type,
   }
   setTimeout(() => {
     notification.value.show = false
@@ -216,7 +216,7 @@ const formatDate = (dateStr) => {
     return date.toLocaleDateString('en-US', {
       month: 'numeric',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     })
   } catch {
     return '--/--/----'
@@ -239,7 +239,7 @@ const fetchSettings = async () => {
       street2: response.data.address2 || '',
       city: response.data.city || '',
       state: response.data.state || '',
-      zip: response.data.zip_code || ''
+      zip: response.data.zip_code || '',
     }
 
     if (response.data.manager_name) {
@@ -275,7 +275,6 @@ const fetchEmployeeData = async () => {
 
     // Fetch today's status
     await fetchTodayStatus()
-
   } catch (err) {
     error.value = 'Failed to load employee data. Please try again later.'
     console.error('Error fetching employee data:', err)
@@ -288,7 +287,7 @@ const fetchEmployeeData = async () => {
 const fetchTimeRecords = async () => {
   try {
     const response = await axiosInstance.get('api/attendance/history/')
-    recentDays.value = response.data.map(record => {
+    recentDays.value = response.data.map((record) => {
       const fullDate = record.date
       const day = new Date(fullDate).toLocaleDateString('en-US', { weekday: 'long' })
       return {
@@ -300,13 +299,13 @@ const fetchTimeRecords = async () => {
         hours: parseFloat(record.hours_worked) || 0,
         status: record.check_out ? 'Completed' : 'In Progress',
         rate_per_hour: parseFloat(record.rate_per_hour) || 0,
-        biweekly_total_hours: parseFloat(record.biweekly_total_hours) || 80
+        biweekly_total_hours: parseFloat(record.biweekly_total_hours) || 80,
       }
     })
 
     // Calculate pay period based on records
     if (recentDays.value.length > 0) {
-      const dates = recentDays.value.map(d => new Date(d.date))
+      const dates = recentDays.value.map((d) => new Date(d.date))
       const minDate = new Date(Math.min(...dates))
       const maxDate = new Date(Math.max(...dates))
 
@@ -315,7 +314,6 @@ const fetchTimeRecords = async () => {
       employee.value.employment.payPeriodStart = payPeriod.value.start
       employee.value.employment.payPeriodEnd = payPeriod.value.end
     }
-
   } catch (err) {
     console.error('Error fetching time records:', err)
     showNotification('Failed to load time records', 'error')
@@ -348,7 +346,7 @@ const checkIn = async () => {
 
     // Update recent days
     const todayStr = formatDate(record.date)
-    const existingIndex = recentDays.value.findIndex(day => day.date === todayStr)
+    const existingIndex = recentDays.value.findIndex((day) => day.date === todayStr)
 
     if (existingIndex === -1) {
       recentDays.value.unshift({
@@ -358,7 +356,7 @@ const checkIn = async () => {
         checkIn: todayCheckIn.value,
         checkOut: null,
         hours: 0,
-        status: 'In Progress'
+        status: 'In Progress',
       })
     }
 
@@ -380,7 +378,7 @@ const checkOut = async () => {
 
     // Update recent days
     const todayStr = formatDate(record.date)
-    const todayIndex = recentDays.value.findIndex(day => day.date === todayStr)
+    const todayIndex = recentDays.value.findIndex((day) => day.date === todayStr)
 
     if (todayIndex !== -1) {
       recentDays.value[todayIndex].checkOut = todayCheckOut.value
@@ -408,8 +406,7 @@ const showTimeHistory = async () => {
 }
 onMounted(() => {
   fetchEmployeeData()
-  setInterval(() => {
-  }, 60000)
+  setInterval(() => {}, 60000)
 })
 </script>
 
@@ -417,37 +414,64 @@ onMounted(() => {
   <TheNavbar />
   <div class="min-h-screen bg-gray-50">
     <!-- Loading overlay with enhanced animation -->
-    <div v-if="loading"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div
+      v-if="loading"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+    >
       <div class="flex flex-col items-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+        <div
+          class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"
+        ></div>
         <p class="text-white font-medium">Loading your dashboard...</p>
       </div>
     </div>
 
     <!-- Enhanced Notification -->
-    <transition enter-active-class="transform ease-out duration-300 transition"
+    <transition
+      enter-active-class="transform ease-out duration-300 transition"
       enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-      enter-to-class="translate-y-0 opacity-100 sm:translate-x-0" leave-active-class="transition ease-in duration-100"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+      leave-active-class="transition ease-in duration-100"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
       <div v-if="notification.show" class="fixed top-6 right-6 z-50">
-        <div :class="{
-          'flex items-center p-4 rounded-lg shadow-xl border-l-4': true,
-          'bg-green-50 text-green-800 border-green-500': notification.type === 'success',
-          'bg-red-50 text-red-800 border-red-500': notification.type === 'error',
-          'animate-fade-in-up': notification.show
-        }">
-          <div :class="{
-            'flex-shrink-0': true,
-            'text-green-500': notification.type === 'success',
-            'text-red-500': notification.type === 'error'
-          }">
-            <svg v-if="notification.type === 'success'" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        <div
+          :class="{
+            'flex items-center p-4 rounded-lg shadow-xl border-l-4': true,
+            'bg-green-50 text-green-800 border-green-500': notification.type === 'success',
+            'bg-red-50 text-red-800 border-red-500': notification.type === 'error',
+            'animate-fade-in-up': notification.show,
+          }"
+        >
+          <div
+            :class="{
+              'flex-shrink-0': true,
+              'text-green-500': notification.type === 'success',
+              'text-red-500': notification.type === 'error',
+            }"
+          >
+            <svg
+              v-if="notification.type === 'success'"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
             <svg v-else class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </div>
           <div class="ml-3">
@@ -458,16 +482,27 @@ onMounted(() => {
     </transition>
 
     <!-- Error message with animation -->
-    <transition enter-active-class="transform ease-out duration-300 transition"
-      enter-from-class="translate-y-2 opacity-0" enter-to-class="translate-y-0 opacity-100"
-      leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="error"
-        class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 mx-6 mt-6 rounded-r-lg shadow-sm">
+    <transition
+      enter-active-class="transform ease-out duration-300 transition"
+      enter-from-class="translate-y-2 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition ease-in duration-100"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="error"
+        class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 mx-6 mt-6 rounded-r-lg shadow-sm"
+      >
         <div class="flex">
           <div class="flex-shrink-0">
             <svg class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           </div>
           <div class="ml-3">
@@ -484,9 +519,13 @@ onMounted(() => {
       <!-- Stats Cards Section with enhanced animations -->
       <div class="grid grid-cols-1 md:grid-cols-3 mt-10 gap-6 mb-8">
         <!-- Current Pay Period Hours Card -->
-        <div id="hoursworked"
-          class="bg-white shadow-lg rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl">
-          <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div
+          id="hoursworked"
+          class="bg-white shadow-lg rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl"
+        >
+          <div
+            class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50"
+          >
             <h2 class="text-lg font-semibold text-gray-800">Current Pay Period</h2>
           </div>
           <div class="px-6 py-5">
@@ -496,10 +535,19 @@ onMounted(() => {
                 <p class="text-3xl font-bold text-blue-600">{{ formatHours(biweeklyHours) }}</p>
               </div>
               <div class="bg-blue-100 p-3 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-8 w-8 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
                 </svg>
               </div>
             </div>
@@ -520,8 +568,10 @@ onMounted(() => {
                 </span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2.5">
-                <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full"
-                  :style="{ width: `${biweeklyProgress}%` }"></div>
+                <div
+                  class="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full"
+                  :style="{ width: `${biweeklyProgress}%` }"
+                ></div>
               </div>
             </div>
           </div>
@@ -529,12 +579,22 @@ onMounted(() => {
 
         <!-- Today's Hours Card -->
         <div
-          class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+          class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+        >
           <div class="px-6 py-5 bg-gradient-to-r from-green-50 to-teal-50 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-              <svg class="h-5 w-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                class="h-5 w-5 text-green-600 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               Today's Status
             </h2>
@@ -547,15 +607,19 @@ onMounted(() => {
             <div class="space-y-5">
               <div>
                 <p class="text-sm font-medium text-gray-500 mb-1">Check In</p>
-                <p class="text-xl font-medium"
-                  :class="{ 'text-gray-400': !todayCheckIn, 'text-green-600': todayCheckIn }">
+                <p
+                  class="text-xl font-medium"
+                  :class="{ 'text-gray-400': !todayCheckIn, 'text-green-600': todayCheckIn }"
+                >
                   {{ todayCheckIn || '--:-- --' }}
                 </p>
               </div>
               <div>
                 <p class="text-sm font-medium text-gray-500 mb-1">Check Out</p>
-                <p class="text-xl font-medium"
-                  :class="{ 'text-gray-400': !todayCheckOut, 'text-red-600': todayCheckOut }">
+                <p
+                  class="text-xl font-medium"
+                  :class="{ 'text-gray-400': !todayCheckOut, 'text-red-600': todayCheckOut }"
+                >
                   {{ todayCheckOut || '--:-- --' }}
                 </p>
               </div>
@@ -569,38 +633,76 @@ onMounted(() => {
 
         <!-- Quick Actions Card -->
         <div
-          class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-          <div class="px-6 py-5 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+          class="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+        >
+          <div
+            class="px-6 py-5 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200"
+          >
             <h2 class="text-lg font-semibold text-gray-800 flex items-center">
-              <svg class="h-5 w-5 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                class="h-5 w-5 text-purple-600 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               Quick Actions
             </h2>
           </div>
           <div class="px-6 py-5 space-y-4">
-            <button @click="checkIn" :disabled="!!todayCheckIn"
-              class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]">
+            <button
+              @click="checkIn"
+              :disabled="!!todayCheckIn"
+              class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]"
+            >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               Check In
             </button>
-            <button @click="checkOut" :disabled="!todayCheckIn || !!todayCheckOut"
-              class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]">
+            <button
+              @click="checkOut"
+              :disabled="!todayCheckIn || !!todayCheckOut"
+              class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]"
+            >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 12H4"
+                />
               </svg>
               Check Out
             </button>
-            <button @click="showTimeHistory"
-              class="w-full flex items-center justify-center px-6 py-3 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-[1.02]">
+            <button
+              @click="showTimeHistory"
+              class="w-full flex items-center justify-center px-6 py-3 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-[1.02]"
+            >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               Refresh Time History
             </button>
@@ -609,48 +711,84 @@ onMounted(() => {
       </div>
 
       <!-- Recent Days Worked Table with enhanced design -->
-      <div id="workedhours"
-        class="bg-white rounded-xl shadow-xl overflow-hidden mb-8 transition-all duration-300 hover:shadow-2xl">
-        <div class="px-6 py-5 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center">
+      <div
+        id="workedhours"
+        class="bg-white rounded-xl shadow-xl overflow-hidden mb-8 transition-all duration-300 hover:shadow-2xl"
+      >
+        <div
+          class="px-6 py-5 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center"
+        >
           <h2 class="text-lg font-semibold text-white flex items-center">
-            <svg class="h-5 w-5 text-blue-300 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              class="h-5 w-5 text-blue-300 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
             Recent Days Worked
           </h2>
           <div class="flex items-center space-x-2 bg-gray-700 px-3 py-1 rounded-full">
             <span class="text-xs text-gray-300">Pay Period:</span>
-            <span class="text-xs font-medium text-white">{{ payPeriod.start || '--/--/----' }} - {{ payPeriod.end ||
-              '--/--/----' }}</span>
+            <span class="text-xs font-medium text-white"
+              >{{ payPeriod.start || '--/--/----' }} - {{ payPeriod.end || '--/--/----' }}</span
+            >
           </div>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Date
                 </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Day
                 </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Check In
                 </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Check Out
                 </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Hours
                 </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Status
                 </th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="day in recentDays" :key="day.id" class="hover:bg-gray-50 transition-colors duration-150">
+              <tr
+                v-for="day in recentDays"
+                :key="day.id"
+                class="hover:bg-gray-50 transition-colors duration-150"
+              >
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {{ day.date }}
                 </td>
@@ -667,12 +805,14 @@ onMounted(() => {
                   {{ formatHours(day.hours) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="{
-                    'px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full': true,
-                    'bg-green-100 text-green-800': day.status === 'Completed',
-                    'bg-yellow-100 text-yellow-800': day.status === 'In Progress',
-                    'bg-red-100 text-red-800': day.status === 'Missing'
-                  }">
+                  <span
+                    :class="{
+                      'px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full': true,
+                      'bg-green-100 text-green-800': day.status === 'Completed',
+                      'bg-yellow-100 text-yellow-800': day.status === 'In Progress',
+                      'bg-red-100 text-red-800': day.status === 'Missing',
+                    }"
+                  >
                     {{ day.status }}
                   </span>
                 </td>
@@ -683,49 +823,87 @@ onMounted(() => {
       </div>
 
       <!-- Current Time Tracking Banner with enhanced color scheme -->
-      <transition enter-active-class="transform transition duration-500 ease-out"
-        enter-from-class="-translate-y-10 opacity-0" enter-to-class="translate-y-0 opacity-100"
-        leave-active-class="transform transition duration-300 ease-in" leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="-translate-y-10 opacity-0">
-        <div v-if="todayCheckIn && !todayCheckOut"
-          class="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl p-6 mb-8 shadow-lg border border-blue-200">
+      <transition
+        enter-active-class="transform transition duration-500 ease-out"
+        enter-from-class="-translate-y-10 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transform transition duration-300 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="-translate-y-10 opacity-0"
+      >
+        <div
+          v-if="todayCheckIn && !todayCheckOut"
+          class="bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl p-6 mb-8 shadow-lg border border-blue-200"
+        >
           <div class="flex flex-col md:flex-row items-center justify-between">
             <div class="flex items-center mb-4 md:mb-0">
-              <div class="bg-gradient-to-br from-blue-400 to-indigo-500 p-3 rounded-full mr-4 shadow-md">
-                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div
+                class="bg-gradient-to-br from-blue-400 to-indigo-500 p-3 rounded-full mr-4 shadow-md"
+              >
+                <svg
+                  class="h-6 w-6 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-indigo-800">Currently Working</h3>
-                <p class="text-sm text-indigo-600 font-medium">Checked in at <span class="text-indigo-800 font-bold">{{
-                  todayCheckIn }}</span></p>
+                <p class="text-sm text-indigo-600 font-medium">
+                  Checked in at <span class="text-indigo-800 font-bold">{{ todayCheckIn }}</span>
+                </p>
               </div>
             </div>
             <div class="text-center md:text-right">
               <p class="text-sm text-indigo-600 font-medium">Time elapsed today</p>
-              <p class="text-3xl font-bold text-indigo-700 animate-pulse">{{ formatHours(currentSessionHours) }}</p>
+              <p class="text-3xl font-bold text-indigo-700 animate-pulse">
+                {{ formatHours(currentSessionHours) }}
+              </p>
             </div>
           </div>
           <!-- Add pause/resume buttons -->
           <div class="flex justify-center space-x-4 mt-4">
-            <button v-if="!isTimerPaused" @click="openPauseModal"
-              class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center">
+            <button
+              v-if="!isTimerPaused"
+              @click="openPauseModal"
+              class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center"
+            >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               Pause Timer
             </button>
 
-            <button v-else @click="resumeTimer"
-              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
+            <button
+              v-else
+              @click="resumeTimer"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+            >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               Resume Timer
             </button>
@@ -734,10 +912,15 @@ onMounted(() => {
           <!-- Show paused status if timer is paused -->
           <div v-if="isTimerPaused" class="mt-4 text-center">
             <span
-              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800"
+            >
               <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               Timer Paused
             </span>
@@ -745,25 +928,44 @@ onMounted(() => {
         </div>
       </transition>
       <!-- Pause Timer Modal -->
-      <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
-        leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showPauseModal"
-          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <transition
+        enter-active-class="ease-out duration-300"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="ease-in duration-200"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showPauseModal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        >
           <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Pause Timer</h3>
-            <p class="text-sm text-gray-500 mb-4">Please provide a reason for pausing your timer:</p>
+            <p class="text-sm text-gray-500 mb-4">
+              Please provide a reason for pausing your timer:
+            </p>
 
-            <textarea v-model="pauseReason" rows="3"
+            <textarea
+              v-model="pauseReason"
+              rows="3"
               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter reason..."></textarea>
+              placeholder="Enter reason..."
+            ></textarea>
 
             <div class="mt-6 flex justify-end space-x-3">
-              <button @click="showPauseModal = false" type="button"
-                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <button
+                @click="showPauseModal = false"
+                type="button"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 Cancel
               </button>
-              <button @click="pauseTimer" type="button"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+              <button
+                @click="pauseTimer"
+                type="button"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+              >
                 Confirm Pause
               </button>
             </div>
@@ -772,23 +974,39 @@ onMounted(() => {
       </transition>
 
       <!-- Resume Timer Modal -->
-      <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
-        leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showResumeModal"
-          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <transition
+        enter-active-class="ease-out duration-300"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="ease-in duration-200"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="showResumeModal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        >
           <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Resume Timer</h3>
             <p class="text-sm text-gray-500 mb-2">You were away for:</p>
             <p class="text-2xl font-bold text-blue-600 mb-6">{{ formatHours(timeAway) }}</p>
-            <p class="text-sm text-gray-500 mb-4">This time will be deducted from your working hours.</p>
+            <p class="text-sm text-gray-500 mb-4">
+              This time will be deducted from your working hours.
+            </p>
 
             <div class="mt-6 flex justify-end space-x-3">
-              <button @click="showResumeModal = false" type="button"
-                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <button
+                @click="showResumeModal = false"
+                type="button"
+                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 Cancel
               </button>
-              <button @click="confirmResume" type="button"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+              <button
+                @click="confirmResume"
+                type="button"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
                 Confirm Resume
               </button>
             </div>
@@ -804,17 +1022,17 @@ onMounted(() => {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px)
+    transform: translateY(20px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0)
+    transform: translateY(0);
   }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp .5s ease-out
+  animation: fadeInUp 0.5s ease-out;
 }
 
 button,
@@ -824,47 +1042,52 @@ select,
 textarea,
 .transition-all {
   transition-property: all;
-  transition-timing-function: cubic-bezier(.4, 0, .2, 1);
-  transition-duration: 200ms
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 
 .shadow-md {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06)
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -2px rgba(0, 0, 0, .05)
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .shadow-xl {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, .1), 0 10px 10px -5px rgba(0, 0, 0, .04)
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .shadow-2xl {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25)
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 @keyframes pulse {
-
   0%,
   100% {
-    opacity: 1
+    opacity: 1;
   }
 
   50% {
-    opacity: .7
+    opacity: 0.7;
   }
 }
 
 .animate-pulse {
-  animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .hover\:scale-\[1\.02\]:hover {
-  transform: scale(1.02)
+  transform: scale(1.02);
 }
 
 .backdrop-blur-sm {
-  backdrop-filter: blur(4px)
+  backdrop-filter: blur(4px);
 }
 </style>

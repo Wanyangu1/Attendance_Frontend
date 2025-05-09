@@ -9,12 +9,18 @@
             <img src="@/assets/logos/logo1.png" class="h-10" alt="City Radius CHS Logo" />
           </div>
           <p class="text-gray-300 leading-relaxed">
-            Providing exceptional community healthcare services with compassion and professionalism since 2005.
+            Providing exceptional community healthcare services with compassion and professionalism
+            since 2005.
           </p>
           <div class="flex space-x-3 pt-2">
-            <a v-for="social in socialLinks" :key="social.name" :href="social.url" target="_blank"
+            <a
+              v-for="social in socialLinks"
+              :key="social.name"
+              :href="social.url"
+              target="_blank"
               class="bg-gray-700 hover:bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 hover:scale-105"
-              :aria-label="social.name">
+              :aria-label="social.name"
+            >
               <i :class="social.icon + ' text-lg text-white'"></i>
             </a>
           </div>
@@ -28,10 +34,13 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="link in quickLinks" :key="link.text">
-              <router-link :to="link.to"
-                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
-                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                </div>
+              <router-link
+                :to="link.to"
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300"
+              >
+                <div
+                  class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                ></div>
                 <span>{{ link.text }}</span>
               </router-link>
             </li>
@@ -46,10 +55,13 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="service in services" :key="service.text">
-              <router-link :to="service.to"
-                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
-                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                </div>
+              <router-link
+                :to="service.to"
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300"
+              >
+                <div
+                  class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                ></div>
                 <span>{{ service.text }}</span>
               </router-link>
             </li>
@@ -69,7 +81,9 @@
               </div>
               <div>
                 <p class="font-medium text-white">Phone</p>
-                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+1(536) 000 000</a>
+                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300"
+                  >+1(536) 000 000</a
+                >
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -78,8 +92,9 @@
               </div>
               <div>
                 <p class="font-medium text-white">Email</p>
-                <a href="mailto:info@cityradiuschs.org"
-                  class="text-gray-300 hover:text-blue-300">info@cityradiuschs.org</a>
+                <a href="mailto:info@cityradiuschs.org" class="text-gray-300 hover:text-blue-300"
+                  >info@cityradiuschs.org</a
+                >
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -111,21 +126,34 @@
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="mb-4 md:mb-0">
           <p class="text-sm text-gray-400">
-            &copy; {{ new Date().getFullYear() }} City Radius Community Health Service. All rights reserved.
+            &copy; {{ new Date().getFullYear() }} City Radius Community Health Service. All rights
+            reserved.
           </p>
         </div>
 
         <div class="flex flex-wrap gap-4 justify-center">
-          <router-link to="/privacy" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
+          <router-link
+            to="/privacy"
+            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
+          >
             Privacy Policy
           </router-link>
-          <router-link to="/terms" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
+          <router-link
+            to="/terms"
+            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
+          >
             Terms of Service
           </router-link>
-          <router-link to="/accessibility" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
+          <router-link
+            to="/accessibility"
+            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
+          >
             Accessibility
           </router-link>
-          <router-link to="/sitemap" class="text-gray-400 hover:text-blue-300 text-sm transition-colors">
+          <router-link
+            to="/sitemap"
+            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
+          >
             Sitemap
           </router-link>
         </div>
@@ -142,31 +170,39 @@ export default {
         { name: 'Facebook', url: 'https://facebook.com/cityradiuschs', icon: 'fab fa-facebook-f' },
         { name: 'Twitter', url: 'https://twitter.com/cityradiuschs', icon: 'fab fa-twitter' },
         { name: 'Instagram', url: 'https://instagram.com/cityradiuschs', icon: 'fab fa-instagram' },
-        { name: 'LinkedIn', url: 'https://linkedin.com/company/cityradiuschs', icon: 'fab fa-linkedin-in' },
-        { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' }
+        {
+          name: 'LinkedIn',
+          url: 'https://linkedin.com/company/cityradiuschs',
+          icon: 'fab fa-linkedin-in',
+        },
+        { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
       ],
       quickLinks: [
         { text: 'About Us', to: '/about' },
         { text: 'Careers', to: '/careers' },
         { text: 'News & Updates', to: '/news' },
         { text: 'Patient Resources', to: '/resources' },
-        { text: 'FAQs', to: '/faqs' }
+        { text: 'FAQs', to: '/faqs' },
       ],
       services: [
         { text: 'Primary Care', to: '/services/primary-care' },
         { text: 'Specialty Services', to: '/services/specialty' },
         { text: 'Preventive Care', to: '/services/preventive' },
         { text: 'Emergency Services', to: '/services/emergency' },
-        { text: 'Community Programs', to: '/services/community' }
-      ]
+        { text: 'Community Programs', to: '/services/community' },
+      ],
     }
-  }
+  },
 }
 </script>
 
 <style scoped>
 footer {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 .router-link-active {
@@ -188,7 +224,10 @@ footer {
 /* Smooth hover transitions */
 a,
 button {
-  transition: color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+  transition:
+    color 0.25s ease,
+    background-color 0.25s ease,
+    transform 0.25s ease;
 }
 
 /* Animation for social icons */
