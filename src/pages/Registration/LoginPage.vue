@@ -1,6 +1,6 @@
 <script setup>
 import useAuth from '@/composables/useAuth'
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 // Health service specific images
 const backgroundImage = ref('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')
@@ -10,12 +10,42 @@ const { email, password, login, errorMessage } = useAuth()
 const showPassword = ref(false)
 const isLoading = ref(false)
 const attendanceType = ref('check-in') // Default to check-in
-const currentDateTime = ref(new Date().toLocaleString())
 
-// Update time every second
-setInterval(() => {
-  currentDateTime.value = new Date().toLocaleString()
-}, 1000)
+// Time display with fixed width to prevent layout shifting
+const currentDateTime = ref('')
+const timeDisplayWidth = 'min-w-[22ch]' // Fixed width for time display
+
+function updateArizonaTime() {
+  const options = {
+    timeZone: 'America/Phoenix',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  }
+
+  // Use Intl.DateTimeFormat for consistent formatting
+  const formatter = new Intl.DateTimeFormat('en-US', options)
+  const parts = formatter.formatToParts(new Date())
+
+  // Build the string with consistent spacing
+  currentDateTime.value = parts.map(part => part.value).join('')
+}
+
+let intervalId
+
+onMounted(() => {
+  updateArizonaTime() // Initial call
+  intervalId = setInterval(updateArizonaTime, 1000) // Update every second
+})
+
+onBeforeUnmount(() => {
+  clearInterval(intervalId) // Clean up on component unmount
+})
 
 const handleLogin = async () => {
   isLoading.value = true
@@ -36,9 +66,11 @@ const handleLogin = async () => {
 
       <!-- Content Overlay -->
       <div class="relative z-10 flex flex-col justify-between p-12 text-white h-full">
-        <!-- Logo -->
-        <div class="flex flex-col items-center ">
-          <img src="@/assets/logos/logo1.png" class="h-12 mb-4" alt="City Radius CHS" />
+        <!-- Main Logo and Title -->
+        <div class="flex flex-col items-center">
+          <div class="bg-white/50 backdrop-blur-sm p-4 rounded-lg mb-4 text-center">
+            <img src="@/assets/logos/logo1.png" class="h-12 mx-auto" alt="City Radius CHS" />
+          </div>
           <h2 class="text-2xl font-bold text-gray-800">Employee Registration</h2>
         </div>
 
@@ -69,10 +101,10 @@ const handleLogin = async () => {
           </div>
         </div>
 
-        <!-- Current Time Display -->
-        <div class="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+        <!-- Current Time Display (Desktop) -->
+        <div class="bg-white/10 backdrop-blur-sm p-4 rounded-lg" :class="timeDisplayWidth">
           <p class="text-sm opacity-90">Current Date & Time:</p>
-          <p class="text-xl font-mono">{{ currentDateTime }}</p>
+          <p class="text-xl font-mono tracking-tight">{{ currentDateTime }}</p>
         </div>
       </div>
     </div>
@@ -82,7 +114,9 @@ const handleLogin = async () => {
       <div class="w-full max-w-md">
         <!-- Mobile Logo -->
         <div class="md:hidden flex justify-center mb-8">
-          <img :src="logoImage" class="h-16 w-16 rounded-full object-cover" alt="Logo" />
+          <div class="bg-blue-50 p-4 rounded-lg text-center">
+            <img :src="logoImage" class="h-16 w-16 rounded-full object-cover" alt="Logo" />
+          </div>
         </div>
 
         <!-- Attendance Card -->
@@ -96,9 +130,9 @@ const handleLogin = async () => {
           <!-- Card Body -->
           <div class="p-8">
             <!-- Current Time Display (Mobile) -->
-            <div class="md:hidden bg-blue-50 p-4 rounded-lg mb-6 text-center">
+            <div class="md:hidden bg-blue-50 p-4 rounded-lg mb-6 text-center" :class="timeDisplayWidth">
               <p class="text-sm text-blue-800">Current Date & Time:</p>
-              <p class="text-lg font-mono text-blue-900">{{ currentDateTime }}</p>
+              <p class="text-lg font-mono tracking-tight text-blue-900">{{ currentDateTime }}</p>
             </div>
 
             <!-- Login Form -->
@@ -164,8 +198,8 @@ const handleLogin = async () => {
                   </button>
                 </div>
                 <div class="mt-2 flex justify-end">
-                  <router-link to="/forgot-password" class="text-sm text-blue-600 hover:underline">Forgot
-                    password?</router-link>
+                  <router-link to="/" class="text-sm text-blue-600 hover:underline">Contact Admin If Forgot
+                    password</router-link>
                 </div>
               </div>
 
@@ -260,6 +294,12 @@ form>*:nth-child(4) {
   animation-delay: 0.4s;
 }
 
+/* Time display styling to prevent layout shift */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: -0.025em;
+}
+
 /* Hover effects for interactive elements */
 button,
 a {
@@ -279,12 +319,5 @@ button:focus {
     padding-top: 2rem;
     padding-bottom: 2rem;
   }
-}
-
-/* Custom radio button styling */
-input[type="radio"]:checked+div {
-  border-color: #2563eb;
-  background-color: #2563eb;
-  color: white;
 }
 </style>
