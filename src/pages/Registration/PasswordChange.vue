@@ -131,7 +131,7 @@ const togglePasswordVisibility = (field) => {
     <div
       class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
       <!-- Card Header with Gradient Background -->
-      <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+      <div class="bg-gradient-to-r from-teal-600 to-emerald-500  p-6 text-white">
         <div class="flex items-center space-x-3">
           <!-- Animated Lock Icon -->
           <div class="relative">

@@ -8,6 +8,7 @@ const isMobileMenuOpen = ref(false)
 const user = ref(null)
 const dropdownOpen = ref(false)
 const dropdownRef = ref(null)
+const hoveredItem = ref(null)
 
 const fetchUserProfile = async () => {
   try {
@@ -39,265 +40,218 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+const setHoveredItem = (item) => {
+  hoveredItem.value = item
+}
+
+const clearHoveredItem = () => {
+  hoveredItem.value = null
+}
 </script>
 
 <template>
-  <header class="fixed w-full z-50 bg-gradient-to-r from-blue-300 to-blue-500 shadow-lg">
+  <header
+    class="fixed w-full z-50 bg-gray-900/90 backdrop-blur-md border-b border-teal-400/20 shadow-2xl shadow-teal-400/10">
     <!-- Main Navigation -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
+      <div class="flex justify-between items-center h-20">
         <!-- Logo and Mobile Menu Button (left side) -->
-        <div class="flex items-center">
-          <!-- Mobile menu button -->
-          <button
-            @click="isMobileMenuOpen = !isMobileMenuOpen"
-            class="lg:hidden text-white p-2 rounded-md hover:bg-white/10 focus:outline-none"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
+        <div class="flex items-center w-full lg:w-auto">
           <!-- Logo -->
-          <router-link to="/home" class="flex-shrink-0 flex items-center ml-2 lg:ml-0">
-            <img src="@/assets/logos/logo1.png" class="h-10" alt="City Radius CHS" />
+          <router-link to="/home"
+            class="text-white px-3 py-1 rounded-md flex-shrink-0 flex items-center ml-0 lg:ml-2 group relative">
+            <!-- Background wrapper around logo -->
+            <div class="bg-white/90 rounded-md p-1 flex items-center justify-center shadow-lg shadow-teal-400/20">
+              <img src="@/assets/logos/logo1.png" class="h-10 w-auto object-contain" alt="App Logo" />
+            </div>
           </router-link>
         </div>
 
+        <!-- Mobile menu button -->
+        <button @click="isMobileMenuOpen = !isMobileMenuOpen"
+          class="lg:hidden text-teal-400 p-2 rounded-md hover:bg-teal-400/10 focus:outline-none transition-all duration-300 group">
+          <div class="space-y-1.5">
+            <span :class="[
+              'block h-0.5 w-6 bg-teal-400 transition-all duration-300',
+              isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
+            ]"></span>
+            <span :class="[
+              'block h-0.5 w-6 bg-teal-400 transition-all duration-300',
+              isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
+            ]"></span>
+            <span :class="[
+              'block h-0.5 w-6 bg-teal-400 transition-all duration-300',
+              isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
+            ]"></span>
+          </div>
+        </button>
+
         <!-- Desktop Navigation (center) -->
-        <nav class="hidden lg:flex lg:items-center lg:justify-center lg:space-x-6 lg:flex-1">
+        <nav class="hidden lg:flex lg:items-center lg:justify-center lg:space-x-1 lg:flex-1">
+          <!-- Animated background element -->
+          <div
+            class="absolute h-10 rounded-full bg-teal-400/10 pointer-events-none transition-all duration-500 ease-out"
+            :style="{
+              width: hoveredItem ? '100px' : '0px',
+              opacity: hoveredItem ? '1' : '0',
+              transform: hoveredItem ? `translateX(${hoveredItem.position}px)` : 'translateX(0)'
+            }"></div>
+
           <!-- Main Links -->
-          <router-link
-            to="/home"
-            class="text-white bg-white/20 px-3 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
+          <router-link to="/home" @mouseenter="setHoveredItem({ id: 'home', position: 0 })"
+            @mouseleave="clearHoveredItem"
+            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span>My Information</span>
+            <span class="relative z-10">My Information</span>
+            <div
+              class="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500">
+            </div>
           </router-link>
 
-          <router-link
-            to="#workedhours"
-            class="text-white bg-white/20 px-3 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
+          <router-link to="#workedhours" @mouseenter="setHoveredItem({ id: 'history', position: 140 })"
+            @mouseleave="clearHoveredItem"
+            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>History</span>
+            <span class="relative z-10">History</span>
+            <div
+              class="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500">
+            </div>
           </router-link>
 
-          <router-link
-            to="#hoursworked"
-            class="text-white bg-white/20 px-3 py-2 rounded-md text-sm font-medium flex items-center transition-all duration-200"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+          <router-link to="#hoursworked" @mouseenter="setHoveredItem({ id: 'hours', position: 260 })"
+            @mouseleave="clearHoveredItem"
+            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Worked Hours</span>
+            <span class="relative z-10">Worked Hours</span>
+            <div
+              class="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500">
+            </div>
           </router-link>
         </nav>
 
         <!-- User Controls (right side) -->
-        <div class="flex border-2 p-1 rounded-full border-gray-100 items-center">
+        <div class="flex items-center space-x-4">
           <template v-if="user">
-            <div class="relative ml-4" ref="dropdownRef">
-              <button
-                @click="toggleDropdown"
-                class="flex items-center text-sm rounded-full focus:outline-none"
-              >
+            <div class="relative" ref="dropdownRef">
+              <button @click="toggleDropdown"
+                class="flex items-center text-sm rounded-full focus:outline-none group relative overflow-hidden">
                 <div
-                  class="h-7 w-7 rounded-full bg-white flex items-center justify-center text-teal-600 font-bold"
-                >
+                  class="absolute inset-0 bg-gradient-to-r from-teal-400 to-emerald-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-full">
+                </div>
+                <div
+                  class="h-9 w-9 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white font-bold shadow-lg shadow-teal-400/20">
                   {{ user.name.charAt(0).toUpperCase() }}
                 </div>
-                <span class="ml-2 text-white hidden lg:inline">{{ user.name.split(' ')[0] }}</span>
-                <svg
-                  :class="[
-                    'ml-1 mr-3 h-4 w-4 text-white transition-transform duration-200',
+                <div
+                  class="hidden lg:flex items-center border border-[#fba142] rounded-full px-3 py-1 ml-2 transition-all duration-300 group-hover:border-teal-300">
+                  <span class="text-teal-100 font-medium">{{ user.name.split(' ')[0] }}</span>
+                  <svg :class="[
+                    'ml-1 h-4 w-4 text-[#fba142] transition-transform duration-200 group-hover:text-teal-300',
                     dropdownOpen ? 'rotate-180' : '',
-                  ]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                  ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </button>
 
               <!-- Dropdown menu -->
-              <transition
-                enter-active-class="transition ease-out duration-100"
-                enter-from-class="transform opacity-0 scale-95"
-                enter-to-class="transform opacity-100 scale-100"
-                leave-active-class="transition ease-in duration-75"
-                leave-from-class="transform opacity-100 scale-100"
-                leave-to-class="transform opacity-0 scale-95"
-              >
-                <div
-                  v-if="dropdownOpen"
-                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50"
-                >
-                  <router-link
-                    to="/profile"
-                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-5 w-5 mr-2 text-teal-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    <span>Profile</span>
-                  </router-link>
-                  <router-link
-                    to="/settings"
-                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-5 w-5 mr-2 text-teal-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <span>Settings</span>
-                  </router-link>
-                  <router-link
-                    to="/Change-Password"
-                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-5 w-5 mr-2 text-teal-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <span>Change-Password</span>
-                  </router-link>
-                  <div class="border-t border-gray-100"></div>
-                  <button
-                    @click="logout"
-                    class="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-5 w-5 mr-2 text-red-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                      />
-                    </svg>
-                    <span>Logout</span>
-                  </button>
+              <transition enter-active-class="transition duration-200 ease-out"
+                enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                leave-active-class="transition duration-150 ease-in" leave-from-class="transform scale-100 opacity-100"
+                leave-to-class="transform scale-95 opacity-0">
+                <div v-if="dropdownOpen"
+                  class="origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-xl bg-gray-800 border border-teal-400/20 py-1 z-50 overflow-hidden">
+                  <div class="absolute inset-0 bg-gradient-to-br from-teal-400/5 to-emerald-500/5 pointer-events-none">
+                  </div>
+                  <div class="relative">
+                    <div class="px-4 py-3 border-b border-teal-400/10">
+                      <p class="text-sm font-medium text-white">{{ user.name }}</p>
+                      <p class="text-xs font-medium text-teal-300 truncate">{{ user.email }}</p>
+                    </div>
+
+                    <router-link to="/profile"
+                      class="flex items-center px-4 py-3 text-sm text-teal-100 hover:bg-teal-400/10 transition-colors group">
+                      <div class="relative z-10 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5 mr-3 text-teal-400 group-hover:text-teal-300 transition-colors" fill="none"
+                          viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Profile</span>
+                      </div>
+                    </router-link>
+
+                    <router-link to="/settings"
+                      class="flex items-center px-4 py-3 text-sm text-teal-100 hover:bg-teal-400/10 transition-colors group">
+                      <div class="relative z-10 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5 mr-3 text-teal-400 group-hover:text-teal-300 transition-colors" fill="none"
+                          viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Settings</span>
+                      </div>
+                    </router-link>
+
+                    <router-link to="/Change-Password"
+                      class="flex items-center px-4 py-3 text-sm text-teal-100 hover:bg-teal-400/10 transition-colors group">
+                      <div class="relative z-10 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5 mr-3 text-teal-400 group-hover:text-teal-300 transition-colors" fill="none"
+                          viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>Change Password</span>
+                      </div>
+                    </router-link>
+
+                    <div class="border-t border-teal-400/10 my-1"></div>
+
+                    <button @click="logout"
+                      class="flex items-center w-full text-left px-4 py-3 text-sm text-rose-400 hover:bg-rose-400/10 transition-colors group">
+                      <div class="relative z-10 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                          class="h-5 w-5 mr-3 group-hover:text-rose-300 transition-colors" fill="none"
+                          viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Logout</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </transition>
             </div>
           </template>
           <template v-else>
-            <router-link
-              to="/"
-              class="px-3 py-1 rounded-md border border-white text-white hover:bg-white hover:text-teal-600 transition text-sm font-medium hidden sm:block"
-            >
+            <router-link to="/"
+              class="px-4 py-2 rounded-lg border border-teal-400/30 text-teal-300 hover:bg-teal-400/10 hover:text-white transition-all duration-300 text-sm font-medium hidden sm:block shadow-sm hover:shadow-teal-400/10">
               Login
             </router-link>
-            <router-link
-              to="/signup"
-              class="ml-2 px-3 py-1 rounded-md bg-white text-teal-600 hover:bg-teal-50 transition text-sm font-medium hidden sm:block"
-            >
+            <router-link to="/signup"
+              class="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-400 to-emerald-500 text-gray-900 hover:from-teal-300 hover:to-emerald-400 transition-all duration-300 text-sm font-bold hidden sm:block shadow-lg hover:shadow-teal-400/20">
               Sign Up
             </router-link>
           </template>
@@ -306,129 +260,81 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Mobile Menu -->
-    <transition
-      enter-active-class="transition ease-out duration-100"
-      enter-from-class="transform opacity-0 scale-95"
-      enter-to-class="transform opacity-100 scale-100"
-      leave-active-class="transition ease-in duration-75"
-      leave-from-class="transform opacity-100 scale-100"
-      leave-to-class="transform opacity-0 scale-95"
-    >
-      <div v-if="isMobileMenuOpen" class="lg:hidden bg-teal-600">
+    <transition enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform -translate-y-4 opacity-0" enter-to-class="transform translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in" leave-from-class="transform translate-y-0 opacity-100"
+      leave-to-class="transform -translate-y-4 opacity-0">
+      <div v-if="isMobileMenuOpen" class="lg:hidden bg-gray-900 border-t border-teal-400/20">
         <div class="px-2 pt-2 pb-3 space-y-1">
-          <router-link
-            to="/attendance"
-            class="text-white hover:bg-white/10 px-3 py-2 rounded-md text-base font-medium flex items-center"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
+          <router-link to="/attendance"
+            class="text-teal-100 hover:bg-teal-400/10 px-4 py-3 rounded-lg text-base font-medium flex items-center transition-colors duration-300"
+            active-class="text-white bg-teal-400/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <span>Attendance</span>
           </router-link>
 
-          <router-link
-            to="/schedule"
-            class="text-white hover:bg-white/10 px-3 py-2 rounded-md text-base font-medium flex items-center"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
+          <router-link to="/schedule"
+            class="text-teal-100 hover:bg-teal-400/10 px-4 py-3 rounded-lg text-base font-medium flex items-center transition-colors duration-300"
+            active-class="text-white bg-teal-400/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Schedule</span>
           </router-link>
 
-          <router-link
-            to="/time-off"
-            class="text-white hover:bg-white/10 px-3 py-2 rounded-md text-base font-medium flex items-center"
-            active-class="bg-white/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+          <router-link to="/time-off"
+            class="text-teal-100 hover:bg-teal-400/10 px-4 py-3 rounded-lg text-base font-medium flex items-center transition-colors duration-300"
+            active-class="text-white bg-teal-400/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>Time Off</span>
           </router-link>
         </div>
 
-        <div class="pt-4 pb-3 border-t border-teal-500">
+        <div class="pt-4 pb-3 border-t border-teal-400/20">
           <template v-if="user">
             <div class="flex items-center px-5">
               <div
-                class="flex-shrink-0 h-10 w-10 rounded-full bg-white flex items-center justify-center text-teal-600 font-bold"
-              >
+                class="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white font-bold shadow-lg shadow-teal-400/20">
                 {{ user.name.charAt(0).toUpperCase() }}
               </div>
               <div class="ml-3">
                 <div class="text-base font-medium text-white">{{ user.name }}</div>
-                <div class="text-sm font-medium text-teal-100">{{ user.email }}</div>
+                <div class="text-sm font-medium text-teal-300">{{ user.email }}</div>
               </div>
             </div>
             <div class="mt-3 px-2 space-y-1">
-              <router-link
-                to="/profile"
-                class="block px-3 py-2 rounded-md text-base font-medium text-teal-100 hover:bg-white/10"
-              >
+              <router-link to="/profile"
+                class="block px-4 py-3 rounded-lg text-base font-medium text-teal-100 hover:bg-teal-400/10 transition-colors duration-300">
                 Profile
               </router-link>
-              <router-link
-                to="/settings"
-                class="block px-3 py-2 rounded-md text-base font-medium text-teal-100 hover:bg-white/10"
-              >
+              <router-link to="/settings"
+                class="block px-4 py-3 rounded-lg text-base font-medium text-teal-100 hover:bg-teal-400/10 transition-colors duration-300">
                 Settings
               </router-link>
-              <button
-                @click="logout"
-                class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-teal-100 hover:bg-white/10"
-              >
+              <button @click="logout"
+                class="block w-full text-left px-4 py-3 rounded-lg text-base font-medium text-rose-400 hover:bg-rose-400/10 transition-colors duration-300">
                 Logout
               </button>
             </div>
           </template>
           <template v-else>
-            <div class="px-2 space-y-2">
-              <router-link
-                to="/login"
-                class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-teal-600 bg-white hover:bg-teal-50"
-              >
+            <div class="px-2 space-y-3">
+              <router-link to="/login"
+                class="block w-full text-center px-4 py-3 border border-teal-400/30 rounded-lg shadow-sm text-base font-medium text-teal-300 bg-transparent hover:bg-teal-400/10 transition-colors duration-300">
                 Login
               </router-link>
-              <router-link
-                to="/signup"
-                class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-teal-500 hover:bg-teal-400"
-              >
+              <router-link to="/signup"
+                class="block w-full text-center px-4 py-3 rounded-lg shadow-lg text-base font-bold text-gray-900 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 transition-all duration-300">
                 Sign Up
               </router-link>
             </div>
@@ -439,7 +345,7 @@ onBeforeUnmount(() => {
   </header>
 
   <!-- Spacer for fixed header -->
-  <div class="h-16"></div>
+  <div class="h-20"></div>
 </template>
 
 <style scoped>
@@ -451,19 +357,42 @@ onBeforeUnmount(() => {
 .router-link-active:after {
   content: '';
   position: absolute;
-  bottom: -2px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 20px;
-  height: 3px;
-  background-color: white;
+  height: 2px;
+  background: linear-gradient(to right, #5eead4, #10b981);
   border-radius: 3px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+    width: 20px;
+  }
+
+  50% {
+    opacity: 1;
+    width: 24px;
+  }
+
+  100% {
+    opacity: 0.7;
+    width: 20px;
+  }
+}
+
+/* Glow effect for active items */
+.router-link-active.router-link-exact-active {
+  text-shadow: 0 0 8px rgba(94, 234, 212, 0.3);
 }
 
 /* Smooth transitions for dropdown */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dropdown-enter-from,
@@ -475,12 +404,31 @@ onBeforeUnmount(() => {
 /* Mobile menu transition */
 .mobile-menu-enter-active,
 .mobile-menu-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobile-menu-enter-from,
 .mobile-menu-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* Custom scrollbar for dropdown */
+.dropdown-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #5eead4 #0f172a;
+}
+
+.dropdown-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb {
+  background-color: #5eead4;
+  border-radius: 6px;
 }
 </style>

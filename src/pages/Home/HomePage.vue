@@ -142,15 +142,20 @@ const biweeklyProgress = computed(() => {
   return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100)
 })
 
-// Computed Properties
 const currentDate = computed(() => {
-  return new Date().toLocaleDateString('en-US', {
+  // Create date object and convert to Arizona time (America/Phoenix)
+  const azDate = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Phoenix'
+  });
+
+  // Convert to Date object and format
+  return new Date(azDate).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  })
-})
+  });
+});
 
 const biweeklyHours = computed(() => {
   return recentDays.value.reduce((total, day) => {
