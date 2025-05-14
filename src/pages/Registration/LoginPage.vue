@@ -122,7 +122,7 @@ const handleLogin = async () => {
         <!-- Attendance Card -->
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
           <!-- Card Header -->
-          <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6 text-center">
+          <div class="bg-[color:#217566] p-6 text-center">
             <h2 class="text-2xl font-bold text-white">Employee Attendance</h2>
             <p class="text-blue-100 mt-1">City Radius Community Health Service</p>
           </div>
@@ -215,7 +215,7 @@ const handleLogin = async () => {
               <!-- Submit Button -->
               <div>
                 <button type="submit" :disabled="isLoading"
-                  class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300"
+                  class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[color:#217566] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300"
                   :class="{ 'opacity-70 cursor-not-allowed': isLoading }">
                   <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
