@@ -51,8 +51,7 @@ const clearHoveredItem = () => {
 </script>
 
 <template>
-  <header
-    class="fixed w-full z-50 bg-gray-900/90 backdrop-blur-md border-b border-teal-400/20 shadow-2xl shadow-teal-400/10">
+  <header class="fixed w-full z-50 bg-[color:#217566] border-teal-400/20 shadow-2xl shadow-teal-400/10">
     <!-- Main Navigation -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-20">
@@ -101,7 +100,7 @@ const clearHoveredItem = () => {
           <!-- Main Links -->
           <router-link to="/home" @mouseenter="setHoveredItem({ id: 'home', position: 0 })"
             @mouseleave="clearHoveredItem"
-            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+            class="relative text-white px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
 
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
               fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +115,7 @@ const clearHoveredItem = () => {
 
           <router-link to="#workedhours" @mouseenter="setHoveredItem({ id: 'history', position: 140 })"
             @mouseleave="clearHoveredItem"
-            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+            class="relative text-white px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
 
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
               fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -131,7 +130,7 @@ const clearHoveredItem = () => {
 
           <router-link to="#hoursworked" @mouseenter="setHoveredItem({ id: 'hours', position: 260 })"
             @mouseleave="clearHoveredItem"
-            class="relative [color:#fba142] px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+            class="relative text-white px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
 
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
               fill="none" viewBox="0 0 24 24" stroke="currentColor">

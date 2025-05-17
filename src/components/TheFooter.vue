@@ -13,14 +13,9 @@
             since 2005.
           </p>
           <div class="flex space-x-3 pt-2">
-            <a
-              v-for="social in socialLinks"
-              :key="social.name"
-              :href="social.url"
-              target="_blank"
+            <a v-for="social in socialLinks" :key="social.name" :href="social.url" target="_blank"
               class="bg-gray-700 hover:bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-300 hover:scale-105"
-              :aria-label="social.name"
-            >
+              :aria-label="social.name">
               <i :class="social.icon + ' text-lg text-white'"></i>
             </a>
           </div>
@@ -34,13 +29,10 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="link in quickLinks" :key="link.text">
-              <router-link
-                :to="link.to"
-                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300"
-              >
-                <div
-                  class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                ></div>
+              <router-link :to="link.to"
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
+                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
                 <span>{{ link.text }}</span>
               </router-link>
             </li>
@@ -55,13 +47,10 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="service in services" :key="service.text">
-              <router-link
-                :to="service.to"
-                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300"
-              >
-                <div
-                  class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                ></div>
+              <router-link :to="service.to"
+                class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
+                <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
                 <span>{{ service.text }}</span>
               </router-link>
             </li>
@@ -81,9 +70,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Phone</p>
-                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300"
-                  >+1(536) 000 000</a
-                >
+                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+1(480)-651-6458</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -92,9 +79,8 @@
               </div>
               <div>
                 <p class="font-medium text-white">Email</p>
-                <a href="mailto:info@cityradiuschs.org" class="text-gray-300 hover:text-blue-300"
-                  >info@cityradiuschs.org</a
-                >
+                <a href="mailto:info@cityradiuschs.org"
+                  class="text-gray-300 hover:text-blue-300">cityradiuschs@gmail.com</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -102,8 +88,9 @@
                 <i class="fas fa-map-marker-alt text-blue-400 text-sm"></i>
               </div>
               <div>
-                <p class="font-medium text-white">Location</p>
-                <p class="text-gray-300">Arizona, USA</p>
+                <p class="font-medium text-white">Corporate Office:</p>
+                <p class="text-gray-300">6125 S Ash Ave.
+                  Tempe, AZ 85283</p>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -112,7 +99,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Hours</p>
-                <p class="text-gray-300">Mon-Fri: 8am - 5pm</p>
+                <p class="text-gray-300">Mon-Fri: 8am - 4pm</p>
               </div>
             </li>
           </ul>
@@ -132,31 +119,13 @@
         </div>
 
         <div class="flex flex-wrap gap-4 justify-center">
-          <router-link
-            to="/privacy"
-            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
-          >
-            Privacy Policy
-          </router-link>
-          <router-link
-            to="/terms"
-            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
-          >
-            Terms of Service
-          </router-link>
-          <router-link
-            to="/accessibility"
-            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
-          >
-            Accessibility
-          </router-link>
-          <router-link
-            to="/sitemap"
-            class="text-gray-400 hover:text-blue-300 text-sm transition-colors"
-          >
-            Sitemap
-          </router-link>
+
+          <a href="https://acw-portfolio.afroartsafary.com/" target="_blank"
+            class="text-blue-200 hover:text-blue-600 text-sm transition-colors">
+            Designed by ACW Developers
+          </a>
         </div>
+
       </div>
     </div>
   </footer>
@@ -178,18 +147,18 @@ export default {
         { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
       ],
       quickLinks: [
-        { text: 'About Us', to: '/about' },
-        { text: 'Careers', to: '/careers' },
-        { text: 'News & Updates', to: '/news' },
-        { text: 'Patient Resources', to: '/resources' },
-        { text: 'FAQs', to: '/faqs' },
+        { text: 'About Us', to: '/https://www.mycityradiuschs.com/t' },
+        { text: 'Careers', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'News & Updates', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Patient Resources', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'FAQs', to: '/https://www.mycityradiuschs.com/' },
       ],
       services: [
-        { text: 'Primary Care', to: '/services/primary-care' },
-        { text: 'Specialty Services', to: '/services/specialty' },
-        { text: 'Preventive Care', to: '/services/preventive' },
-        { text: 'Emergency Services', to: '/services/emergency' },
-        { text: 'Community Programs', to: '/services/community' },
+        { text: 'Counselling services', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Mental Health Screening', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Crisis Intervention and Management', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Personal Care Services', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Habiliation', to: '/https://www.mycityradiuschs.com/' },
       ],
     }
   },

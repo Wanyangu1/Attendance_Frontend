@@ -1,10 +1,10 @@
 <script setup>
 import useAuth from '@/composables/useAuth'
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import logoImage from '@/assets/logos/logo1.png'
 
 // Health service specific images
 const backgroundImage = ref('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')
-const logoImage = ref('https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2080&q=80')
 
 const { email, password, login, errorMessage } = useAuth()
 const showPassword = ref(false)
@@ -69,7 +69,7 @@ const handleLogin = async () => {
         <!-- Main Logo and Title -->
         <div class="flex flex-col items-center">
           <div class="bg-white/50 backdrop-blur-sm p-4 rounded-lg mb-4 text-center">
-            <img src="@/assets/logos/logo1.png" class="h-12 mx-auto" alt="City Radius CHS" />
+            <img :src="logoImage" class="h-12 mx-auto" alt="City Radius CHS" />
           </div>
           <h2 class="text-2xl font-bold text-gray-800">Employee Registration</h2>
         </div>
@@ -115,7 +115,7 @@ const handleLogin = async () => {
         <!-- Mobile Logo -->
         <div class="md:hidden flex justify-center mb-8">
           <div class="bg-blue-50 p-4 rounded-lg text-center">
-            <img :src="logoImage" class="h-16 w-16 rounded-full object-cover" alt="Logo" />
+            <img :src="logoImage" class="h-16 mx-auto" alt="Logo" />
           </div>
         </div>
 
@@ -199,7 +199,7 @@ const handleLogin = async () => {
                 </div>
                 <div class="mt-2 flex justify-end">
                   <router-link to="/" class="text-sm text-blue-600 hover:underline">Contact Admin If Forgot
-                    password</router-link>
+                    credentials</router-link>
                 </div>
               </div>
 
@@ -239,7 +239,8 @@ const handleLogin = async () => {
           <div class="bg-gray-50 px-8 py-4 text-center">
             <p class="text-sm text-gray-600">
               Need help with attendance recording?
-              <a href="mailto:hr@cityradiuschs.org" class="font-medium text-blue-600 hover:text-blue-500">Contact HR</a>
+              <a href="mailto:mycityradius5@gmail.com" class="font-medium text-blue-600 hover:text-blue-500">Contact
+                HR</a>
             </p>
           </div>
         </div>
