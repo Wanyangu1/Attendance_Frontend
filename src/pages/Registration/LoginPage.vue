@@ -198,8 +198,11 @@ const handleLogin = async () => {
                   </button>
                 </div>
                 <div class="mt-2 flex justify-end">
-                  <router-link to="/" class="text-sm text-blue-600 hover:underline">Contact Admin If Forgot
-                    credentials</router-link>
+                  <p class="text-sm text-gray-600">
+                    <a href="mailto:mycityradius5@gmail.com"
+                      class="font-medium text-blue-600 hover:text-blue-500">Contact Admin If Forgot
+                      credentials</a>
+                  </p>
                 </div>
               </div>
 
@@ -235,13 +238,34 @@ const handleLogin = async () => {
             </form>
           </div>
 
-          <!-- Card Footer -->
-          <div class="bg-gray-50 px-8 py-4 text-center">
-            <p class="text-sm text-gray-600">
-              Need help with attendance recording?
-              <a href="mailto:mycityradius5@gmail.com" class="font-medium text-blue-600 hover:text-blue-500">Contact
-                HR</a>
-            </p>
+          <!-- Admin Login Card Footer -->
+          <div
+            class="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-5 text-center rounded-b-lg border-t border-gray-200">
+            <div class="flex items-center justify-center space-x-2">
+              <!-- Shield Admin Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+
+              <p class="text-sm font-medium text-gray-600">
+                Administrator Access
+              </p>
+            </div>
+
+            <div class="mt-2">
+              <a href="http://backend.mycityradiusattendance.com/admin" target="_blank" rel="noopener noreferrer"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <!-- Lock Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Access Admin Dashboard
+              </a>
+            </div>
           </div>
         </div>
 
