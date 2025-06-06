@@ -11,6 +11,7 @@ import AttendanceLogs from '@/pages/Home/Provider/DailyAttendance/AttendanceLogs
 import TimeSheet from '@/pages/Home/Provider/Timesheet/TimeSheet.vue'
 import AddNotes from '@/pages/Home/Provider/DailyAttendance/AddNotes.vue'
 import NewRecord from '@/pages/Home/Provider/DailyAttendance/NewRecord.vue'
+import ClientList from '@/pages/Home/Client/ClientList.vue'
 
 const routes = [
   {
@@ -73,6 +74,11 @@ const routes = [
     path: '/new-record',
     name: 'new-record',
     component: NewRecord,
+  },
+  {
+    path: '/client',
+    name: 'client',
+    component: ClientList,
   },
 ]
 
