@@ -6,6 +6,8 @@ import ProfilePage from '@/pages/Registration/ProfilePage.vue'
 import SettingsPage from '@/pages/Registration/UserSettings.vue/SettingsPage.vue'
 import AdminPage from '@/pages/Admin/AdminPage.vue'
 import PasswordChange from '@/pages/Registration/PasswordChange.vue'
+import ProviderPage from '@/pages/Home/Provider/ProviderPage.vue'
+import AttendanceLogs from '@/pages/Home/Provider/DailyAttendance/AttendanceLogs.vue'
 
 const routes = [
   {
@@ -42,6 +44,16 @@ const routes = [
     path: '/Change-Password',
     name: 'Change-Password',
     component: PasswordChange,
+  },
+  {
+    path: '/provider',
+    name: 'provider',
+    component: ProviderPage,
+  },
+  {
+    path: '/attendance-log',
+    name: 'attendance-log',
+    component: AttendanceLogs,
   },
 ]
 

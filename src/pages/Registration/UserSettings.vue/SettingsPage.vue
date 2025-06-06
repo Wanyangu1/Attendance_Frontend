@@ -211,7 +211,7 @@ onMounted(fetchSettings)
 
             <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-6">
               <div class="sm:col-span-6">
-                <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label class="text-sm font-medium text-gray-700 mb-1 flex items-center">
                   <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
