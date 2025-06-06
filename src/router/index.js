@@ -8,6 +8,7 @@ import AdminPage from '@/pages/Admin/AdminPage.vue'
 import PasswordChange from '@/pages/Registration/PasswordChange.vue'
 import ProviderPage from '@/pages/Home/Provider/ProviderPage.vue'
 import AttendanceLogs from '@/pages/Home/Provider/DailyAttendance/AttendanceLogs.vue'
+import TimeSheet from '@/pages/Home/Provider/Timesheet/TimeSheet.vue'
 
 const routes = [
   {
@@ -54,6 +55,11 @@ const routes = [
     path: '/attendance-log',
     name: 'attendance-log',
     component: AttendanceLogs,
+  },
+  {
+    path: '/timesheet',
+    name: 'timesheet',
+    component: TimeSheet,
   },
 ]
 
