@@ -9,6 +9,7 @@ import PasswordChange from '@/pages/Registration/PasswordChange.vue'
 import ProviderPage from '@/pages/Home/Provider/ProviderPage.vue'
 import AttendanceLogs from '@/pages/Home/Provider/DailyAttendance/AttendanceLogs.vue'
 import TimeSheet from '@/pages/Home/Provider/Timesheet/TimeSheet.vue'
+import AddNotes from '@/pages/Home/Provider/DailyAttendance/AddNotes.vue'
 
 const routes = [
   {
@@ -60,6 +61,11 @@ const routes = [
     path: '/timesheet',
     name: 'timesheet',
     component: TimeSheet,
+  },
+  {
+    path: '/notes',
+    name: 'notes',
+    component: AddNotes,
   },
 ]
 
