@@ -1,7 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
+
+const router = useRouter()
 
 // Get current Arizona date (MST, no DST)
 const getArizonaDate = () => {
@@ -22,6 +25,70 @@ const locationFilter = ref('GUADALUPE DTA')
 const dateFilter = ref(formattedCurrentDate)
 const searchQuery = ref('')
 
+// Details popup state
+const showDetailsPopup = ref(false)
+const selectedRecord = ref(null)
+const detailsForm = ref({
+  absent: false,
+  oneOnOne: false,
+  provider: ''
+})
+
+// Track which records have notes
+const recordsWithNotes = ref([])
+
+// Check localStorage for existing notes on component mount
+onMounted(() => {
+  const savedNotes = JSON.parse(localStorage.getItem('recordsWithNotes') || '[]')
+  recordsWithNotes.value = savedNotes
+})
+
+const checkNotesStatus = (recordId) => {
+  return recordsWithNotes.value.includes(recordId)
+}
+
+const openDetailsPopup = (record) => {
+  selectedRecord.value = record
+  // Reset form state
+  detailsForm.value = {
+    absent: false,
+    oneOnOne: record.oneOnOne || false,
+    provider: ''
+  }
+  showDetailsPopup.value = true
+}
+
+const closeDetailsPopup = () => {
+  showDetailsPopup.value = false
+  selectedRecord.value = null
+}
+
+const saveDetails = () => {
+  if (selectedRecord.value) {
+    const record = attendanceRecords.value.find(r => r.id === selectedRecord.value.id)
+    if (record) {
+      record.oneOnOne = detailsForm.value.oneOnOne
+    }
+  }
+  closeDetailsPopup()
+}
+
+const navigateToNotes = (record) => {
+  router.push({
+    name: 'Notes',
+    params: { id: record.id },
+    state: {
+      clientData: {
+        name: record.client,
+        service: record.service,
+        date: record.date,
+        timeIn: record.timeIn,
+        timeOut: record.timeOut
+      }
+    }
+  })
+}
+
 const attendanceRecords = ref([
   {
     id: 1,
@@ -29,7 +96,7 @@ const attendanceRecords = ref([
     timeIn: '11:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -40,7 +107,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -51,7 +118,7 @@ const attendanceRecords = ref([
     timeIn: '12:30 PM',
     timeOut: '05:30 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -62,7 +129,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:30 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: true
@@ -73,7 +140,7 @@ const attendanceRecords = ref([
     timeIn: '09:00 AM',
     timeOut: '05:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: true
@@ -84,7 +151,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -95,7 +162,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -106,7 +173,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -117,7 +184,7 @@ const attendanceRecords = ref([
     timeIn: '08:00 AM',
     timeOut: '04:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -128,7 +195,7 @@ const attendanceRecords = ref([
     timeIn: '09:00 AM',
     timeOut: '05:00 PM',
     service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: '',
+    oneOnOne: false,
     location: 'GUADALUPE DTA',
     date: currentDate,
     documentation: false
@@ -138,7 +205,7 @@ const attendanceRecords = ref([
 const filteredRecords = computed(() => {
   return attendanceRecords.value.filter(record => {
     const matchesLocation = record.location === locationFilter.value
-    const matchesDate = record.date === currentDate // Only show current date by default
+    const matchesDate = record.date === currentDate
     const matchesSearch = searchQuery.value === '' ||
       record.client.toLowerCase().includes(searchQuery.value.toLowerCase())
 
@@ -148,6 +215,9 @@ const filteredRecords = computed(() => {
 
 const deleteRecord = (id) => {
   attendanceRecords.value = attendanceRecords.value.filter(record => record.id !== id)
+  // Remove from recordsWithNotes if present
+  recordsWithNotes.value = recordsWithNotes.value.filter(recordId => recordId !== id)
+  localStorage.setItem('recordsWithNotes', JSON.stringify(recordsWithNotes.value))
 }
 
 const toggleOneOnOne = (id) => {
@@ -224,7 +294,7 @@ const toggleOneOnOne = (id) => {
 
     <!-- Add New Record Button -->
     <div class="mb-4 flex justify-end">
-      <button
+      <button @click="$router.push({ name: 'new-record' })"
         class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
           stroke="currentColor">
@@ -277,26 +347,26 @@ const toggleOneOnOne = (id) => {
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeIn }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeOut
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.service
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">
                 <input type="checkbox" :checked="record.oneOnOne" @change="toggleOneOnOne(record.id)"
                   class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">
-                <button
+                <button @click="navigateToNotes(record)"
                   class="px-3 py-1 border border-teal-600 text-teal-600 rounded-md text-xs font-medium hover:bg-teal-50 transition-colors flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  {{ record.documentation ? 'Update' : 'Add' }}
+                  {{ checkNotesStatus(record.id) ? 'Update' : 'Add' }}
                 </button>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">
-                <button
+                <button @click="openDetailsPopup(record)"
                   class="px-3 py-1 border border-gray-400 text-gray-600 rounded-md text-xs font-medium hover:bg-gray-50 transition-colors flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -330,6 +400,50 @@ const toggleOneOnOne = (id) => {
     <div class="mt-8 pt-4 border-t border-gray-200">
       <h3 class="text-lg font-medium text-gray-900 mb-2">Signature</h3>
       <div class="w-full border-b-2 border-gray-400 h-10"></div>
+    </div>
+
+    <!-- Details Popup Modal -->
+    <div v-if="showDetailsPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Details for {{ selectedRecord.client }}</h3>
+
+          <div class="space-y-4">
+            <div class="flex items-center">
+              <input id="absent-checkbox" type="checkbox" v-model="detailsForm.absent"
+                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">
+              <label for="absent-checkbox" class="ml-2 block text-sm text-gray-700">Absent?</label>
+            </div>
+
+            <div class="flex items-center">
+              <input id="oneOnOne-checkbox" type="checkbox" v-model="detailsForm.oneOnOne"
+                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">
+              <label for="oneOnOne-checkbox" class="ml-2 block text-sm text-gray-700">One to One?</label>
+            </div>
+
+            <div>
+              <label for="provider" class="block text-sm font-medium text-gray-700 mb-1">Provider:</label>
+              <input type="text" id="provider" v-model="detailsForm.provider"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button @click="closeDetailsPopup"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors">
+              Close
+            </button>
+            <!-- Add this new Save button -->
+            <button @click="saveDetails"
+              class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors">
+              Save Details
+            </button>
+            <button @click="navigateToNotes(selectedRecord)"
+              class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors">
+              {{ checkNotesStatus(selectedRecord.id) ? 'Update Notes' : 'Add Notes' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <TheFooter />

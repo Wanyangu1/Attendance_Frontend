@@ -1,18 +1,29 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import axiosInstance from '@/axiosconfig/axiosInstance'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
 
+const route = useRoute()
+
+// Dynamic client data
 const client = ref({
-  name: 'MORGAN CAPRETTO',
-  service: 'DTA',
-  date: '06/06/2025',
-  time: '08:00-16:00'
+  id: route.params.id,
+  name: '',
+  service: '',
+  date: '',
+  timeIn: '',
+  timeOut: '',
+  time: '',
+  location: ''
 })
 
+// Goals data
 const goals = ref([])
 const newNote = ref('')
+const isLoading = ref(true)
+const error = ref(null)
 
 // Percentage options for dropdown
 const percentageOptions = ref([
@@ -36,41 +47,109 @@ const valueOptions = ref([
   { value: 'VP', text: 'VP-Verbal prompt' }
 ])
 
-// Fetch goals from backend
+// Fetch client details based on ID
+const fetchClientDetails = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+
+    // First try to get from route state (immediate data)
+    if (route.state?.clientData) {
+      client.value = {
+        ...client.value,
+        ...route.state.clientData,
+        time: `${route.state.clientData.timeIn}-${route.state.clientData.timeOut}`
+      }
+    }
+
+    // Then try to fetch from API (fresh data)
+    const response = await axiosInstance.get(`/api/clients/${client.value.id}`)
+    const data = response.data
+    client.value = {
+      ...client.value,
+      name: data.client || client.value.name,
+      service: data.service || client.value.service,
+      date: data.date || client.value.date,
+      timeIn: data.timeIn || client.value.timeIn,
+      timeOut: data.timeOut || client.value.timeOut,
+      location: data.location || client.value.location,
+      time: `${data.timeIn || client.value.timeIn}-${data.timeOut || client.value.timeOut}`
+    }
+  } catch (err) {
+    console.error('Error fetching client details:', err)
+    error.value = 'Failed to load client details'
+    // Fallback to route state if API fails
+    if (!route.state?.clientData) {
+      client.value = {
+        ...client.value,
+        name: 'Unknown Client',
+        service: 'Unknown Service',
+        date: 'N/A',
+        time: 'N/A'
+      }
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Fetch goals for this client
 const fetchGoals = async () => {
   try {
-    const response = await axiosInstance.get(`/api/goals?client=${client.value.name}`)
+    isLoading.value = true
+    error.value = null
+
+    const response = await axiosInstance.get(`/api/goals`, {
+      params: {
+        clientId: client.value.id,
+        date: client.value.date
+      }
+    })
+
     goals.value = response.data.map(goal => ({
       ...goal,
       trials: goal.trials || [{ progress: '', percentage: '0%', value: '', initials: '' }],
       dailyNotes: goal.dailyNotes || ''
     }))
-  } catch (error) {
-    console.error('Error fetching goals:', error)
-    // Sample data for demo purposes
-    goals.value = [
-      {
-        id: 1,
-        description: 'To increase independence Morgan will follow a proper bathing routine',
-        activities: 'Morgan will wash her body during bath time with hand over hand support or two verbal prompts from staff',
-        outcome: '4/5 trials every six weeks',
-        trials: [{ progress: '', percentage: '0%', value: '', initials: '' }],
-        dailyNotes: '',
-        providerInitials: ''
-      },
-      {
-        id: 2,
-        description: 'To increase activities of daily living Morgan will pause between bites during meals and chew her food with two verbal prompts',
-        activities: 'Pause between bites during meals and chew food properly',
-        outcome: '4/5 trials every six weeks',
-        trials: [{ progress: '', percentage: '0%', value: '', initials: '' }],
-        dailyNotes: '',
-        providerInitials: ''
-      }
-    ]
+
+    // If no goals returned, use sample data
+    if (goals.value.length === 0) {
+      goals.value = getSampleGoals()
+    }
+  } catch (err) {
+    console.error('Error fetching goals:', err)
+    error.value = 'Failed to load goals'
+    goals.value = getSampleGoals()
+  } finally {
+    isLoading.value = false
   }
 }
 
+// Sample data for demo purposes
+const getSampleGoals = () => {
+  return [
+    {
+      id: 1,
+      description: 'To increase independence the client will follow a proper bathing routine',
+      activities: 'Client will wash their body during bath time with hand over hand support or two verbal prompts from staff',
+      outcome: '4/5 trials every six weeks',
+      trials: [{ progress: '', percentage: '0%', value: '', initials: '' }],
+      dailyNotes: '',
+      providerInitials: ''
+    },
+    {
+      id: 2,
+      description: 'To increase activities of daily living the client will pause between bites during meals and chew food with two verbal prompts',
+      activities: 'Pause between bites during meals and chew food properly',
+      outcome: '4/5 trials every six weeks',
+      trials: [{ progress: '', percentage: '0%', value: '', initials: '' }],
+      dailyNotes: '',
+      providerInitials: ''
+    }
+  ]
+}
+
+// Add a new trial to a goal
 const addTrial = (goalId) => {
   const goal = goals.value.find(g => g.id === goalId)
   if (goal) {
@@ -78,21 +157,39 @@ const addTrial = (goalId) => {
   }
 }
 
+// Save progress to backend
 const saveProgress = async () => {
   try {
+    isLoading.value = true
     await axiosInstance.post('/api/progress', {
-      client: client.value.name,
+      clientId: client.value.id,
+      clientName: client.value.name,
       date: client.value.date,
-      goals: goals.value
+      location: client.value.location,
+      goals: goals.value,
+      additionalNotes: newNote.value
     })
     alert('Progress saved successfully!')
-  } catch (error) {
-    console.error('Error saving progress:', error)
-    alert('Failed to save progress')
+  } catch (err) {
+    console.error('Error saving progress:', err)
+    alert('Failed to save progress. Please try again.')
+  } finally {
+    isLoading.value = false
   }
 }
 
+// Watch for route changes
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    client.value.id = newId
+    fetchClientDetails()
+    fetchGoals()
+  }
+}, { immediate: true })
+
+// Initial load
 onMounted(() => {
+  fetchClientDetails()
   fetchGoals()
 })
 </script>
@@ -100,9 +197,31 @@ onMounted(() => {
 <template>
   <TheNavbar />
   <div class="min-h-screen bg-gray-50 p-6">
+    <!-- Loading state -->
+    <div v-if="isLoading" class="text-center py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 mx-auto"></div>
+      <p class="mt-2 text-gray-600">Loading client data...</p>
+    </div>
+
+    <!-- Error state -->
+    <div v-else-if="error" class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-700">{{ error }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Client Header -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div v-if="!isLoading" class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Patient's Name:</label>
           <p class="mt-1 text-lg font-semibold">{{ client.name }}</p>
@@ -110,6 +229,10 @@ onMounted(() => {
         <div>
           <label class="block text-sm font-medium text-gray-700">Service:</label>
           <p class="mt-1 text-lg">{{ client.service }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Location:</label>
+          <p class="mt-1 text-lg">{{ client.location }}</p>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -125,7 +248,7 @@ onMounted(() => {
     </div>
 
     <!-- Goals Section -->
-    <div class="space-y-8">
+    <div v-if="!isLoading" class="space-y-8">
       <div v-for="(goal, goalIndex) in goals" :key="goal.id" class="bg-white rounded-lg shadow overflow-hidden">
         <!-- Goal Header -->
         <div class="bg-teal-600 px-6 py-3">
@@ -175,7 +298,6 @@ onMounted(() => {
                       </option>
                     </select>
                   </td>
-
                   <td class="px-6 py-4 whitespace-nowrap">
                     <select v-model="trial.value"
                       class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
@@ -185,7 +307,6 @@ onMounted(() => {
                       </option>
                     </select>
                   </td>
-
                   <td class="px-6 py-4 whitespace-nowrap">
                     <input v-model="trial.initials" type="text"
                       class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
@@ -216,17 +337,18 @@ onMounted(() => {
     </div>
 
     <!-- General Notes -->
-    <div class="mt-6 bg-white rounded-lg shadow p-6">
+    <div v-if="!isLoading" class="mt-6 bg-white rounded-lg shadow p-6">
       <label class="block text-sm font-medium text-gray-700">Additional Notes</label>
       <textarea v-model="newNote" rows="3"
         class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"></textarea>
     </div>
 
     <!-- Save Button -->
-    <div class="mt-6 flex justify-end">
-      <button @click="saveProgress"
-        class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700">
-        Save Progress
+    <div v-if="!isLoading" class="mt-6 flex justify-end">
+      <button @click="saveProgress" :disabled="isLoading"
+        class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span v-if="isLoading">Saving...</span>
+        <span v-else>Save Progress</span>
       </button>
     </div>
   </div>

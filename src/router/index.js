@@ -10,6 +10,7 @@ import ProviderPage from '@/pages/Home/Provider/ProviderPage.vue'
 import AttendanceLogs from '@/pages/Home/Provider/DailyAttendance/AttendanceLogs.vue'
 import TimeSheet from '@/pages/Home/Provider/Timesheet/TimeSheet.vue'
 import AddNotes from '@/pages/Home/Provider/DailyAttendance/AddNotes.vue'
+import NewRecord from '@/pages/Home/Provider/DailyAttendance/NewRecord.vue'
 
 const routes = [
   {
@@ -63,9 +64,15 @@ const routes = [
     component: TimeSheet,
   },
   {
-    path: '/notes',
-    name: 'notes',
+    path: '/notes/:id',
+    name: 'Notes',
     component: AddNotes,
+    props: true,
+  },
+  {
+    path: '/new-record',
+    name: 'new-record',
+    component: NewRecord,
   },
 ]
 
