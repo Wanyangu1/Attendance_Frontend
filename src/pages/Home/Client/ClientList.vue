@@ -17,14 +17,42 @@ const activeFilters = ref([])
 const clients = ref([])
 const isLoading = ref(false)
 const error = ref(null)
+const currentUser = ref(null)
 
-// Fetch clients from API using Axios instance
+// Fetch current user profile
+const fetchProfile = async () => {
+  try {
+    const response = await axiosInstance.get('/api/profile/')
+    currentUser.value = response.data
+    console.log('Current user profile:', currentUser.value) // Debug log
+    return response.data
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'Failed to fetch profile'
+    console.error('Error fetching profile:', err)
+    throw err
+  }
+}
+
+// Fetch clients assigned to current user
 const fetchClients = async () => {
   try {
     isLoading.value = true
     error.value = null
+
+    // Get current user profile
+    const user = await fetchProfile()
+
+    // Fetch all clients
     const response = await axiosInstance.get('/api/clients/')
-    clients.value = response.data
+    console.log('All clients:', response.data) // Debug log
+
+    // Filter clients where client.user matches user.id
+    clients.value = response.data.filter(client => {
+      console.log(`Checking client ${client.id}: client.user=${client.user} vs profile.id=${user.id}`) // Debug log
+      return client.user === user.id
+    })
+
+    console.log('Filtered clients:', clients.value) // Debug log
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to fetch clients'
     console.error('Error fetching clients:', err)
@@ -33,15 +61,22 @@ const fetchClients = async () => {
   }
 }
 
-// Update client via API using Axios instance
+// Update client with authorization check
 const updateClient = async (clientData) => {
   try {
     isLoading.value = true
     error.value = null
-    const response = await axiosInstance.patch(`/api/clients/${clientData.id}/`, clientData)
 
+    // Verify client belongs to current user
+    const user = await fetchProfile()
+    if (clientData.user !== user.id) {
+      throw new Error('Unauthorized: You can only update your own clients')
+    }
+
+    const response = await axiosInstance.patch(`/api/clients/${clientData.id}/`, clientData)
     const updatedClient = response.data
-    // Update the local client data with the response from the server
+
+    // Update local state
     const index = clients.value.findIndex(c => c.id === updatedClient.id)
     if (index !== -1) {
       clients.value[index] = updatedClient
@@ -50,7 +85,7 @@ const updateClient = async (clientData) => {
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to update client'
     console.error('Error updating client:', err)
-    throw err // Re-throw to handle in the calling function
+    throw err
   } finally {
     isLoading.value = false
   }
@@ -60,23 +95,23 @@ const updateClient = async (clientData) => {
 const filteredClients = computed(() => {
   let filtered = clients.value
 
-  // Filter by search query
+  // Search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(client =>
-      client.lastName?.toLowerCase().includes(query) ||
+    (client.lastName?.toLowerCase().includes(query) ||
       client.firstName?.toLowerCase().includes(query) ||
       client.clientId?.toLowerCase().includes(query) ||
-      client.phone?.toLowerCase().includes(query)
+      client.phone?.toLowerCase().includes(query))
     )
   }
 
-  // Filter by status
+  // Status filter
   if (statusFilter.value !== 'all') {
     filtered = filtered.filter(client => client.status === statusFilter.value)
   }
 
-  // Filter by date range
+  // Date range filter
   if (dateRange.value.start && dateRange.value.end) {
     filtered = filtered.filter(client => {
       const dob = new Date(client.dob)
@@ -86,9 +121,7 @@ const filteredClients = computed(() => {
     })
   }
 
-  // Update active filters
   updateActiveFilters()
-
   return filtered
 })
 
@@ -118,7 +151,7 @@ const saveClient = async () => {
     await updateClient(editedClient.value)
     showEditModal.value = false
   } catch {
-    // Error is already set by updateClient, just don't close the modal
+    // Error handling done in updateClient
   }
 }
 
@@ -139,19 +172,21 @@ const removeFilter = (filterIndex) => {
   }
 }
 
-// Fetch clients when component mounts
+// Lifecycle
 onMounted(() => {
   fetchClients()
 })
 </script>
 
 <template>
-  <!-- The rest of your template remains exactly the same -->
   <TheNavbar />
   <div class="min-h-screen bg-gray-50 p-6">
     <!-- Page Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800">Client List</h1>
+      <h1 class="text-3xl font-bold text-gray-800">My Client List</h1>
+      <p v-if="currentUser" class="text-sm text-gray-600 mt-1">
+        Logged in as: {{ currentUser.name }} (ID: {{ currentUser.id }})
+      </p>
     </div>
 
     <!-- Error message -->
@@ -207,7 +242,7 @@ onMounted(() => {
 
         <!-- Status Filter -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Select Status of Clients</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Select Status</label>
           <select v-model="statusFilter"
             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
             <option value="all">All Statuses</option>
@@ -248,7 +283,7 @@ onMounted(() => {
     <!-- Results Summary -->
     <div v-if="!isLoading" class="flex justify-between items-center mb-4">
       <h2 class="text-lg font-semibold text-gray-800">Client Records</h2>
-      <p class="text-sm text-gray-600">Total found: {{ filteredClients.length }}</p>
+      <p class="text-sm text-gray-600">Showing {{ filteredClients.length }} of {{ clients.length }} clients</p>
     </div>
 
     <!-- Clients Table -->
@@ -297,8 +332,9 @@ onMounted(() => {
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ client.guardian }}</td>
             </tr>
             <tr v-if="filteredClients.length === 0">
-              <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">No clients found matching your
-                criteria</td>
+              <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">
+                No clients found matching your criteria
+              </td>
             </tr>
           </tbody>
         </table>
