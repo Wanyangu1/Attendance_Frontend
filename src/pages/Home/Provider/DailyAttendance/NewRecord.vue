@@ -3,43 +3,49 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
+import axiosInstance from '@/axiosconfig/axiosInstance'
 
 const router = useRouter()
 
-// Get current Arizona date (MST, no DST)
+// Get current Arizona date in MM/DD/YYYY format (MST, no DST)
 const getArizonaDate = () => {
   const now = new Date()
-  const options = { timeZone: 'America/Phoenix', month: '2-digit', day: '2-digit', year: 'numeric' }
-  return now.toLocaleDateString('en-US', options)
+  const options = {
+    timeZone: 'America/Phoenix',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }
+  return now.toLocaleDateString('en-US', options) // Returns MM/DD/YYYY
 }
 
 const currentDate = getArizonaDate()
 
-// Form data
+// Form data - matches Django model fields
 const newRecord = ref({
   client: '',
-  timeIn: '',
-  timeOut: '',
-  service: 'DTA - Day Program (Adult) - 1',
-  location: 'GUADALUPE DTA',
-  date: currentDate,
-  oneOnOne: false,
+  time_in: '',
+  time_out: '',
+  service: 'DTA1',
+  location: 'GUADALUPE_DTA',
+  date: currentDate, // Already in MM/DD/YYYY format
+  one_on_one: false,
   documentation: false
 })
 
 // Location options
 const locationOptions = ref([
-  'GUADALUPE DTA',
-  'GUADALUPE DTT',
-  'GUADALUPE SPECIAL DTA'
+  { value: 'GUADALUPE_DTA', text: 'GUADALUPE DTA' },
+  { value: 'GUADALUPE_DTT', text: 'GUADALUPE DTT' },
+  { value: 'GUADALUPE_SPECIAL', text: 'GUADALUPE SPECIAL DTA' }
 ])
 
 // Service options
 const serviceOptions = ref([
-  'DTA - Day Program (Adult) - 1',
-  'DTA - Day Program (Adult) - 2',
-  'DTT - Day Treatment Training',
-  'Special DTA - Special Day Program'
+  { value: 'DTA1', text: 'DTA - Day Program (Adult) - 1' },
+  { value: 'DTA2', text: 'DTA - Day Program (Adult) - 2' },
+  { value: 'DTT', text: 'DTT - Day Treatment Training' },
+  { value: 'SDTA', text: 'Special DTA - Special Day Program' }
 ])
 
 // Time options for dropdown
@@ -56,36 +62,43 @@ const timeOptions = ref([
 // Form validation
 const errors = ref({
   client: '',
-  timeIn: '',
-  timeOut: '',
+  time_in: '',
+  time_out: '',
   service: '',
-  location: ''
+  location: '',
+  date: ''
 })
 
 const validateForm = () => {
   let isValid = true
-  errors.value = { client: '', timeIn: '', timeOut: '', service: '', location: '' }
+  errors.value = {
+    client: '',
+    time_in: '',
+    time_out: '',
+    service: '',
+    location: '',
+    date: ''
+  }
 
   if (!newRecord.value.client.trim()) {
     errors.value.client = 'Client name is required'
     isValid = false
   }
 
-  if (!newRecord.value.timeIn) {
-    errors.value.timeIn = 'Time In is required'
+  if (!newRecord.value.time_in) {
+    errors.value.time_in = 'Time In is required'
     isValid = false
   }
 
-  if (!newRecord.value.timeOut) {
-    errors.value.timeOut = 'Time Out is required'
+  if (!newRecord.value.time_out) {
+    errors.value.time_out = 'Time Out is required'
     isValid = false
-  } else if (newRecord.value.timeIn && newRecord.value.timeOut) {
-    // Convert times to 24-hour format for comparison
-    const timeIn = convertTo24Hour(newRecord.value.timeIn)
-    const timeOut = convertTo24Hour(newRecord.value.timeOut)
+  } else if (newRecord.value.time_in && newRecord.value.time_out) {
+    const timeIn = convertTo24Hour(newRecord.value.time_in)
+    const timeOut = convertTo24Hour(newRecord.value.time_out)
 
     if (timeOut <= timeIn) {
-      errors.value.timeOut = 'Time Out must be after Time In'
+      errors.value.time_out = 'Time Out must be after Time In'
       isValid = false
     }
   }
@@ -97,6 +110,13 @@ const validateForm = () => {
 
   if (!newRecord.value.location) {
     errors.value.location = 'Location is required'
+    isValid = false
+  }
+
+  // Validate date format (MM/DD/YYYY)
+  const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/
+  if (!dateRegex.test(newRecord.value.date)) {
+    errors.value.date = 'Date must be in MM/DD/YYYY format'
     isValid = false
   }
 
@@ -118,14 +138,30 @@ const convertTo24Hour = (timeStr) => {
   return `${hours}:${minutes}`
 }
 
-const submitForm = () => {
-  if (validateForm()) {
-    // In a real app, you would save to your backend here
-    // For now, we'll just navigate back to the attendance log
-    router.push({ name: 'Attendance' })
+const submitForm = async () => {
+  if (!validateForm()) return
 
-    // Emit an event or use a store to add this record to your attendanceRecords array
-    // This would be handled in your parent component or store
+  try {
+    const payload = {
+      ...newRecord.value,
+      time_in: convertTo24Hour(newRecord.value.time_in), // Convert to 24-hour (HH:MM)
+      time_out: convertTo24Hour(newRecord.value.time_out), // Convert to 24-hour (HH:MM)
+      date: newRecord.value.date // Already in MM/DD/YYYY format
+    }
+
+    console.log('Submitting payload:', payload) // Debug log
+    await axiosInstance.post('api/attendance/', payload)
+    router.push({ name: 'Attendance' })
+  } catch (error) {
+    console.error('Error saving record:', error)
+    if (error.response) {
+      if (error.response.data) {
+        // Handle backend validation errors
+        for (const [field, messages] of Object.entries(error.response.data)) {
+          errors.value[field] = Array.isArray(messages) ? messages.join(' ') : messages
+        }
+      }
+    }
   }
 }
 
@@ -159,22 +195,22 @@ const cancelForm = () => {
           <!-- Time In/Out -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="timeIn" class="block text-sm font-medium text-gray-700">Time In</label>
-              <select id="timeIn" v-model="newRecord.timeIn"
+              <label for="time_in" class="block text-sm font-medium text-gray-700">Time In</label>
+              <select id="time_in" v-model="newRecord.time_in"
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
                 <option value="">Select Time In</option>
                 <option v-for="time in timeOptions" :key="`in-${time}`" :value="time">{{ time }}</option>
               </select>
-              <p v-if="errors.timeIn" class="mt-1 text-sm text-red-600">{{ errors.timeIn }}</p>
+              <p v-if="errors.time_in" class="mt-1 text-sm text-red-600">{{ errors.time_in }}</p>
             </div>
             <div>
-              <label for="timeOut" class="block text-sm font-medium text-gray-700">Time Out</label>
-              <select id="timeOut" v-model="newRecord.timeOut"
+              <label for="time_out" class="block text-sm font-medium text-gray-700">Time Out</label>
+              <select id="time_out" v-model="newRecord.time_out"
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
                 <option value="">Select Time Out</option>
                 <option v-for="time in timeOptions" :key="`out-${time}`" :value="time">{{ time }}</option>
               </select>
-              <p v-if="errors.timeOut" class="mt-1 text-sm text-red-600">{{ errors.timeOut }}</p>
+              <p v-if="errors.time_out" class="mt-1 text-sm text-red-600">{{ errors.time_out }}</p>
             </div>
           </div>
 
@@ -183,7 +219,9 @@ const cancelForm = () => {
             <label for="service" class="block text-sm font-medium text-gray-700">Service</label>
             <select id="service" v-model="newRecord.service"
               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
-              <option v-for="service in serviceOptions" :key="service" :value="service">{{ service }}</option>
+              <option v-for="service in serviceOptions" :key="service.value" :value="service.value">
+                {{ service.text }}
+              </option>
             </select>
             <p v-if="errors.service" class="mt-1 text-sm text-red-600">{{ errors.service }}</p>
           </div>
@@ -193,7 +231,9 @@ const cancelForm = () => {
             <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
             <select id="location" v-model="newRecord.location"
               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
-              <option v-for="location in locationOptions" :key="location" :value="location">{{ location }}</option>
+              <option v-for="location in locationOptions" :key="location.value" :value="location.value">
+                {{ location.text }}
+              </option>
             </select>
             <p v-if="errors.location" class="mt-1 text-sm text-red-600">{{ errors.location }}</p>
           </div>
@@ -204,13 +244,14 @@ const cancelForm = () => {
             <input id="date" v-model="newRecord.date" type="text"
               class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border bg-gray-100"
               readonly>
+            <p v-if="errors.date" class="mt-1 text-sm text-red-600">{{ errors.date }}</p>
           </div>
 
           <!-- One-on-One Checkbox -->
           <div class="flex items-center">
-            <input id="oneOnOne" v-model="newRecord.oneOnOne" type="checkbox"
+            <input id="one_on_one" v-model="newRecord.one_on_one" type="checkbox"
               class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">
-            <label for="oneOnOne" class="ml-2 block text-sm text-gray-700">One-on-One Session</label>
+            <label for="one_on_one" class="ml-2 block text-sm text-gray-700">One-on-One Session</label>
           </div>
         </div>
 

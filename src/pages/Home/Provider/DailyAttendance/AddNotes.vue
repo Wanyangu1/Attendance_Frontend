@@ -7,16 +7,18 @@ import TheNavbar from '@/components/TheNavbar.vue'
 
 const route = useRoute()
 
-// Dynamic client data
+// Dynamic client data - initialized with route state data
 const client = ref({
   id: route.params.id,
-  name: '',
-  service: '',
-  date: '',
-  timeIn: '',
-  timeOut: '',
-  time: '',
-  location: ''
+  name: route.state?.clientData?.name || '',
+  service: route.state?.clientData?.service || '',
+  date: route.state?.clientData?.date || '',
+  timeIn: route.state?.clientData?.timeIn || '',
+  timeOut: route.state?.clientData?.timeOut || '',
+  location: route.state?.clientData?.location || '',
+  time: route.state?.clientData?.timeIn && route.state?.clientData?.timeOut
+    ? `${route.state.clientData.timeIn}-${route.state.clientData.timeOut}`
+    : ''
 })
 
 // Goals data
@@ -53,33 +55,36 @@ const fetchClientDetails = async () => {
     isLoading.value = true
     error.value = null
 
-    // First try to get from route state (immediate data)
-    if (route.state?.clientData) {
-      client.value = {
-        ...client.value,
-        ...route.state.clientData,
-        time: `${route.state.clientData.timeIn}-${route.state.clientData.timeOut}`
-      }
+    // If we already have complete data from route state, skip API call
+    if (route.state?.clientData &&
+      route.state.clientData.name &&
+      route.state.clientData.service &&
+      route.state.clientData.date) {
+      isLoading.value = false
+      return
     }
 
-    // Then try to fetch from API (fresh data)
+    // Otherwise, fetch from API
     const response = await axiosInstance.get(`/api/clients/${client.value.id}`)
     const data = response.data
+
+    // Only update fields that aren't already populated from route state
     client.value = {
       ...client.value,
-      name: data.client || client.value.name,
-      service: data.service || client.value.service,
-      date: data.date || client.value.date,
-      timeIn: data.timeIn || client.value.timeIn,
-      timeOut: data.timeOut || client.value.timeOut,
-      location: data.location || client.value.location,
-      time: `${data.timeIn || client.value.timeIn}-${data.timeOut || client.value.timeOut}`
+      name: client.value.name || data.client,
+      service: client.value.service || data.service,
+      date: client.value.date || data.date,
+      timeIn: client.value.timeIn || data.time_in,
+      timeOut: client.value.timeOut || data.time_out,
+      location: client.value.location || data.location,
+      time: client.value.time || `${data.time_in || ''}-${data.time_out || ''}`
     }
   } catch (err) {
     console.error('Error fetching client details:', err)
     error.value = 'Failed to load client details'
-    // Fallback to route state if API fails
-    if (!route.state?.clientData) {
+
+    // If we don't have any client data at all, set defaults
+    if (!client.value.name) {
       client.value = {
         ...client.value,
         name: 'Unknown Client',
@@ -99,7 +104,7 @@ const fetchGoals = async () => {
     isLoading.value = true
     error.value = null
 
-    const response = await axiosInstance.get(`/api/goals`, {
+    const response = await axiosInstance.get(`/api/goals/goals/`, {
       params: {
         clientId: client.value.id,
         date: client.value.date
@@ -161,11 +166,14 @@ const addTrial = (goalId) => {
 const saveProgress = async () => {
   try {
     isLoading.value = true
-    await axiosInstance.post('/api/progress', {
+    await axiosInstance.post('/api/goals/progress/', {
       clientId: client.value.id,
       clientName: client.value.name,
       date: client.value.date,
       location: client.value.location,
+      service: client.value.service,
+      timeIn: client.value.timeIn,
+      timeOut: client.value.timeOut,
       goals: goals.value,
       additionalNotes: newNote.value
     })
@@ -186,6 +194,19 @@ watch(() => route.params.id, (newId) => {
     fetchGoals()
   }
 }, { immediate: true })
+
+// Watch for route state changes (in case component is reused)
+watch(() => route.state, (newState) => {
+  if (newState?.clientData) {
+    client.value = {
+      ...client.value,
+      ...newState.clientData,
+      time: newState.clientData.timeIn && newState.clientData.timeOut
+        ? `${newState.clientData.timeIn}-${newState.clientData.timeOut}`
+        : client.value.time
+    }
+  }
+}, { deep: true })
 
 // Initial load
 onMounted(() => {

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
+import axiosInstance from '@/axiosconfig/axiosInstance'
 
 const router = useRouter()
 
@@ -21,9 +22,10 @@ const formatDateForInput = (dateStr) => {
 const currentDate = getArizonaDate()
 const formattedCurrentDate = formatDateForInput(currentDate)
 
-const locationFilter = ref('GUADALUPE DTA')
+const locationFilter = ref('GUADALUPE_DTA')
 const dateFilter = ref(formattedCurrentDate)
 const searchQuery = ref('')
+const isLoading = ref(false)
 
 // Details popup state
 const showDetailsPopup = ref(false)
@@ -36,11 +38,51 @@ const detailsForm = ref({
 
 // Track which records have notes
 const recordsWithNotes = ref([])
+const attendanceRecords = ref([])
+
+// Fetch attendance records from backend
+const fetchAttendanceRecords = async () => {
+  try {
+    isLoading.value = true
+    const response = await axiosInstance.get('api/attendance/', {
+      params: {
+        location: locationFilter.value,
+        date: dateFilter.value
+      }
+    })
+    attendanceRecords.value = response.data.map(record => ({
+      ...record,
+      // Convert 24-hour times back to 12-hour format for display
+      timeIn: convertTo12Hour(record.time_in),
+      timeOut: convertTo12Hour(record.time_out),
+      // Map backend fields to frontend naming
+      oneOnOne: record.one_on_one,
+      documentation: record.documentation
+    }))
+  } catch (error) {
+    console.error('Error fetching attendance records:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Convert 24-hour time to 12-hour format
+const convertTo12Hour = (timeStr) => {
+  if (!timeStr) return ''
+
+  const [hours, minutes] = timeStr.split(':')
+  const hourNum = parseInt(hours, 10)
+  const suffix = hourNum >= 12 ? 'PM' : 'AM'
+  const displayHour = hourNum % 12 || 12
+
+  return `${displayHour}:${minutes} ${suffix}`
+}
 
 // Check localStorage for existing notes on component mount
 onMounted(() => {
   const savedNotes = JSON.parse(localStorage.getItem('recordsWithNotes') || '[]')
   recordsWithNotes.value = savedNotes
+  fetchAttendanceRecords()
 })
 
 const checkNotesStatus = (recordId) => {
@@ -49,7 +91,6 @@ const checkNotesStatus = (recordId) => {
 
 const openDetailsPopup = (record) => {
   selectedRecord.value = record
-  // Reset form state
   detailsForm.value = {
     absent: false,
     oneOnOne: record.oneOnOne || false,
@@ -63,14 +104,28 @@ const closeDetailsPopup = () => {
   selectedRecord.value = null
 }
 
-const saveDetails = () => {
-  if (selectedRecord.value) {
-    const record = attendanceRecords.value.find(r => r.id === selectedRecord.value.id)
-    if (record) {
-      record.oneOnOne = detailsForm.value.oneOnOne
+const saveDetails = async () => {
+  if (!selectedRecord.value) return
+
+  try {
+    const response = await axiosInstance.patch(
+      `api/attendance/${selectedRecord.value.id}/`,
+      {
+        one_on_one: detailsForm.value.oneOnOne
+      }
+    )
+    response.data
+
+    // Update local record
+    const recordIndex = attendanceRecords.value.findIndex(r => r.id === selectedRecord.value.id)
+    if (recordIndex !== -1) {
+      attendanceRecords.value[recordIndex].oneOnOne = detailsForm.value.oneOnOne
     }
+
+    closeDetailsPopup()
+  } catch (error) {
+    console.error('Error updating record:', error)
   }
-  closeDetailsPopup()
 }
 
 const navigateToNotes = (record) => {
@@ -83,124 +138,12 @@ const navigateToNotes = (record) => {
         service: record.service,
         date: record.date,
         timeIn: record.timeIn,
-        timeOut: record.timeOut
+        timeOut: record.timeOut,
+        location: record.location
       }
     }
   })
 }
-
-const attendanceRecords = ref([
-  {
-    id: 1,
-    client: 'BRIAN BALLARD',
-    timeIn: '11:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 2,
-    client: 'MORGAN CAPRETTO',
-    timeIn: '08:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 3,
-    client: 'SAMUEL COOPER',
-    timeIn: '12:30 PM',
-    timeOut: '05:30 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 4,
-    client: 'MYRTLELENA MAY',
-    timeIn: '08:00 AM',
-    timeOut: '04:30 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: true
-  },
-  {
-    id: 5,
-    client: 'MAYA OSORIO',
-    timeIn: '09:00 AM',
-    timeOut: '05:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: true
-  },
-  {
-    id: 6,
-    client: 'AMBER PANNELL',
-    timeIn: '08:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 7,
-    client: 'VALERIE RAMIREZ',
-    timeIn: '08:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 8,
-    client: 'KAYLA SVENDSON',
-    timeIn: '08:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 9,
-    client: 'ISAIAH VAUGHN',
-    timeIn: '08:00 AM',
-    timeOut: '04:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  },
-  {
-    id: 10,
-    client: 'Thomas Washington',
-    timeIn: '09:00 AM',
-    timeOut: '05:00 PM',
-    service: 'DTA - Day Program (Adult) - 1',
-    oneOnOne: false,
-    location: 'GUADALUPE DTA',
-    date: currentDate,
-    documentation: false
-  }
-])
 
 const filteredRecords = computed(() => {
   return attendanceRecords.value.filter(record => {
@@ -213,17 +156,31 @@ const filteredRecords = computed(() => {
   })
 })
 
-const deleteRecord = (id) => {
-  attendanceRecords.value = attendanceRecords.value.filter(record => record.id !== id)
-  // Remove from recordsWithNotes if present
-  recordsWithNotes.value = recordsWithNotes.value.filter(recordId => recordId !== id)
-  localStorage.setItem('recordsWithNotes', JSON.stringify(recordsWithNotes.value))
+const deleteRecord = async (id) => {
+  try {
+    await axiosInstance.delete(`api/attendance/${id}/`)
+    attendanceRecords.value = attendanceRecords.value.filter(record => record.id !== id)
+    // Remove from recordsWithNotes if present
+    recordsWithNotes.value = recordsWithNotes.value.filter(recordId => recordId !== id)
+    localStorage.setItem('recordsWithNotes', JSON.stringify(recordsWithNotes.value))
+  } catch (error) {
+    console.error('Error deleting record:', error)
+  }
 }
 
-const toggleOneOnOne = (id) => {
+const toggleOneOnOne = async (id) => {
   const record = attendanceRecords.value.find(r => r.id === id)
-  if (record) {
-    record.oneOnOne = !record.oneOnOne
+  if (!record) return
+
+  try {
+    const newOneOnOneValue = !record.oneOnOne
+    await axiosInstance.patch(
+      `api/attendance/${id}/`,
+      { one_on_one: newOneOnOneValue }
+    )
+    record.oneOnOne = newOneOnOneValue
+  } catch (error) {
+    console.error('Error updating one-on-one status:', error)
   }
 }
 </script>
@@ -257,10 +214,10 @@ const toggleOneOnOne = (id) => {
           <label for="location-filter" class="block text-sm font-medium text-gray-700 mb-1">Location:</label>
           <select id="location-filter"
             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-            v-model="locationFilter">
-            <option>GUADALUPE DTA</option>
-            <option>GUADALUPE DTT</option>
-            <option>GUADALUPE SPECIAL DTA</option>
+            v-model="locationFilter" @change="fetchAttendanceRecords">
+            <option value="GUADALUPE_DTA">GUADALUPE DTA</option>
+            <option value="GUADALUPE_DTT">GUADALUPE DTT</option>
+            <option value="GUADALUPE_SPECIAL">GUADALUPE SPECIAL DTA</option>
           </select>
         </div>
 
@@ -269,7 +226,7 @@ const toggleOneOnOne = (id) => {
           <label for="date-filter" class="block text-sm font-medium text-gray-700 mb-1">Date:</label>
           <input type="date" id="date-filter"
             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-            v-model="dateFilter">
+            v-model="dateFilter" @change="fetchAttendanceRecords">
         </div>
 
         <!-- Client Search -->
@@ -304,8 +261,13 @@ const toggleOneOnOne = (id) => {
       </button>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex justify-center items-center p-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
+    </div>
+
     <!-- Attendance Table -->
-    <div class="bg-white shadow overflow-hidden rounded-lg border border-gray-200">
+    <div v-else class="bg-white shadow overflow-hidden rounded-lg border border-gray-200">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-teal-600">
@@ -432,7 +394,6 @@ const toggleOneOnOne = (id) => {
               class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors">
               Close
             </button>
-            <!-- Add this new Save button -->
             <button @click="saveDetails"
               class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors">
               Save Details
