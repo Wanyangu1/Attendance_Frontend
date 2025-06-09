@@ -14,9 +14,16 @@ const getArizonaDate = () => {
   return now.toLocaleDateString('en-US', options)
 }
 
+// Convert date from MM/DD/YYYY to YYYY-MM-DD format
 const formatDateForInput = (dateStr) => {
   const [month, day, year] = dateStr.split('/')
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
+// Convert date from YYYY-MM-DD to MM/DD/YYYY format
+const formatDateForDisplay = (dateStr) => {
+  const [year, month, day] = dateStr.split('-')
+  return `${month}/${day}/${year}`
 }
 
 const currentDate = getArizonaDate()
@@ -44,12 +51,7 @@ const attendanceRecords = ref([])
 const fetchAttendanceRecords = async () => {
   try {
     isLoading.value = true
-    const response = await axiosInstance.get('api/attendance/', {
-      params: {
-        location: locationFilter.value,
-        date: dateFilter.value
-      }
-    })
+    const response = await axiosInstance.get('api/attendance/')
     attendanceRecords.value = response.data.map(record => ({
       ...record,
       // Convert 24-hour times back to 12-hour format for display
@@ -57,7 +59,9 @@ const fetchAttendanceRecords = async () => {
       timeOut: convertTo12Hour(record.time_out),
       // Map backend fields to frontend naming
       oneOnOne: record.one_on_one,
-      documentation: record.documentation
+      documentation: record.documentation,
+      // Format date for consistent comparison
+      formattedDate: formatDateForInput(record.date)
     }))
   } catch (error) {
     console.error('Error fetching attendance records:', error)
@@ -148,7 +152,7 @@ const navigateToNotes = (record) => {
 const filteredRecords = computed(() => {
   return attendanceRecords.value.filter(record => {
     const matchesLocation = record.location === locationFilter.value
-    const matchesDate = record.date === currentDate
+    const matchesDate = record.formattedDate === dateFilter.value
     const matchesSearch = searchQuery.value === '' ||
       record.client.toLowerCase().includes(searchQuery.value.toLowerCase())
 
@@ -192,7 +196,7 @@ const toggleOneOnOne = async (id) => {
     <div class="mb-6 flex justify-between items-start">
       <div>
         <h1 class="text-3xl font-bold text-gray-800">Daily Attendance Log</h1>
-        <p class="text-gray-600 mt-1">{{ currentDate }}</p>
+        <p class="text-gray-600 mt-1">{{ formatDateForDisplay(dateFilter) }}</p>
       </div>
       <div class="flex space-x-2">
         <button
@@ -214,7 +218,7 @@ const toggleOneOnOne = async (id) => {
           <label for="location-filter" class="block text-sm font-medium text-gray-700 mb-1">Location:</label>
           <select id="location-filter"
             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-            v-model="locationFilter" @change="fetchAttendanceRecords">
+            v-model="locationFilter">
             <option value="GUADALUPE_DTA">GUADALUPE DTA</option>
             <option value="GUADALUPE_DTT">GUADALUPE DTT</option>
             <option value="GUADALUPE_SPECIAL">GUADALUPE SPECIAL DTA</option>
@@ -226,7 +230,7 @@ const toggleOneOnOne = async (id) => {
           <label for="date-filter" class="block text-sm font-medium text-gray-700 mb-1">Date:</label>
           <input type="date" id="date-filter"
             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-            v-model="dateFilter" @change="fetchAttendanceRecords">
+            v-model="dateFilter">
         </div>
 
         <!-- Client Search -->
@@ -309,9 +313,9 @@ const toggleOneOnOne = async (id) => {
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeIn }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeOut
-                }}</td>
+              }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.service
-                }}</td>
+              }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">
                 <input type="checkbox" :checked="record.oneOnOne" @change="toggleOneOnOne(record.id)"
                   class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">

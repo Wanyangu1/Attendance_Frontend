@@ -1,11 +1,22 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
 import axiosInstance from '@/axiosconfig/axiosInstance'
 
 const router = useRouter()
+const successMessage = ref('')
+const clients = ref([])
+
+const fetchClients = async () => {
+  try {
+    const response = await axiosInstance.get('api/clients/')
+    clients.value = response.data
+  } catch (error) {
+    console.error('Failed to load clients:', error)
+  }
+}
 
 // Get current Arizona date in MM/DD/YYYY format (MST, no DST)
 const getArizonaDate = () => {
@@ -144,30 +155,36 @@ const submitForm = async () => {
   try {
     const payload = {
       ...newRecord.value,
-      time_in: convertTo24Hour(newRecord.value.time_in), // Convert to 24-hour (HH:MM)
-      time_out: convertTo24Hour(newRecord.value.time_out), // Convert to 24-hour (HH:MM)
-      date: newRecord.value.date // Already in MM/DD/YYYY format
+      time_in: convertTo24Hour(newRecord.value.time_in),
+      time_out: convertTo24Hour(newRecord.value.time_out),
+      date: newRecord.value.date
     }
 
-    console.log('Submitting payload:', payload) // Debug log
+    console.log('Submitting payload:', payload)
     await axiosInstance.post('api/attendance/', payload)
-    router.push({ name: 'Attendance' })
+
+    successMessage.value = 'Attendance record created successfully! 🎉'
+
+    setTimeout(() => {
+      router.push({ name: 'Attendance' })
+    }, 2000) // wait 2 seconds before navigating
   } catch (error) {
     console.error('Error saving record:', error)
-    if (error.response) {
-      if (error.response.data) {
-        // Handle backend validation errors
-        for (const [field, messages] of Object.entries(error.response.data)) {
-          errors.value[field] = Array.isArray(messages) ? messages.join(' ') : messages
-        }
+    if (error.response && error.response.data) {
+      for (const [field, messages] of Object.entries(error.response.data)) {
+        errors.value[field] = Array.isArray(messages) ? messages.join(' ') : messages
       }
     }
   }
 }
 
 const cancelForm = () => {
-  router.push({ name: 'Attendance' })
+  router.push({ name: 'attendance-log' })
 }
+onMounted(() => {
+  fetchClients()
+})
+
 </script>
 
 <template>
@@ -179,16 +196,27 @@ const cancelForm = () => {
         <h1 class="text-3xl font-bold text-gray-800">Add New Attendance Record</h1>
         <p class="text-gray-600 mt-1">{{ currentDate }}</p>
       </div>
+      <!-- Success Alert -->
+      <div v-if="successMessage"
+        class="mb-4 rounded-lg bg-green-100 border border-green-400 text-green-800 px-4 py-3 flex justify-between items-center">
+        <span>{{ successMessage }}</span>
+        <button @click="successMessage = ''" class="text-green-700 font-bold text-lg">&times;</button>
+      </div>
+
 
       <!-- Form Section -->
       <div class="bg-white rounded-lg shadow p-6">
         <div class="space-y-6">
-          <!-- Client Name -->
+          <!-- Client Dropdown -->
           <div>
             <label for="client" class="block text-sm font-medium text-gray-700">Client Name</label>
-            <input id="client" v-model="newRecord.client" type="text"
-              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-              placeholder="Enter client name">
+            <select id="client" v-model="newRecord.client"
+              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <option value="">Select a client</option>
+              <option v-for="client in clients" :key="client.id" :value="client.clientId">
+                {{ client.firstName }} {{ client.lastName }}
+              </option>
+            </select>
             <p v-if="errors.client" class="mt-1 text-sm text-red-600">{{ errors.client }}</p>
           </div>
 
