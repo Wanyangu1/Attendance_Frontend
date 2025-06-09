@@ -116,7 +116,7 @@ const fetchGoals = async () => {
     }));
   } catch (err) {
     console.error('Error fetching goals:', err);
-    error.value = 'Failed to load goals';
+    error.value = 'No goals & outcomes found for this client';
     goals.value = [];
   } finally {
     isLoading.value = false;

@@ -33,6 +33,7 @@ const locationFilter = ref('GUADALUPE_DTA')
 const dateFilter = ref(formattedCurrentDate)
 const searchQuery = ref('')
 const isLoading = ref(false)
+const clients = ref([]) // Store all clients data
 
 // Details popup state
 const showDetailsPopup = ref(false)
@@ -46,6 +47,16 @@ const detailsForm = ref({
 // Track which records have notes
 const recordsWithNotes = ref([])
 const attendanceRecords = ref([])
+
+// Fetch all clients data
+const fetchClients = async () => {
+  try {
+    const response = await axiosInstance.get('api/clients/')
+    clients.value = response.data
+  } catch (error) {
+    console.error('Error fetching clients:', error)
+  }
+}
 
 // Fetch attendance records from backend
 const fetchAttendanceRecords = async () => {
@@ -61,7 +72,9 @@ const fetchAttendanceRecords = async () => {
       oneOnOne: record.one_on_one,
       documentation: record.documentation,
       // Format date for consistent comparison
-      formattedDate: formatDateForInput(record.date)
+      formattedDate: formatDateForInput(record.date),
+      // Find matching client details
+      clientDetails: clients.value.find(c => c.clientId === record.client)
     }))
   } catch (error) {
     console.error('Error fetching attendance records:', error)
@@ -83,10 +96,11 @@ const convertTo12Hour = (timeStr) => {
 }
 
 // Check localStorage for existing notes on component mount
-onMounted(() => {
+onMounted(async () => {
   const savedNotes = JSON.parse(localStorage.getItem('recordsWithNotes') || '[]')
   recordsWithNotes.value = savedNotes
-  fetchAttendanceRecords()
+  await fetchClients() // Fetch clients first
+  await fetchAttendanceRecords() // Then fetch attendance records
 })
 
 const checkNotesStatus = (recordId) => {
@@ -132,21 +146,48 @@ const saveDetails = async () => {
   }
 }
 
-const navigateToNotes = (record) => {
-  router.push({
-    name: 'Notes',
-    params: { id: record.id },
-    state: {
-      clientData: {
-        name: record.client,
-        service: record.service,
-        date: record.date,
-        timeIn: record.timeIn,
-        timeOut: record.timeOut,
-        location: record.location
-      }
+const navigateToNotes = async (record) => {
+  try {
+    // Find matching client
+    const matchingClient = clients.value.find(c => c.clientId === record.client)
+
+    if (matchingClient) {
+      router.push({
+        name: 'Notes',
+        params: { id: matchingClient.id }, // Use client ID instead of attendance ID
+        state: {
+          clientData: {
+            name: record.client,
+            firstName: matchingClient.firstName,
+            lastName: matchingClient.lastName,
+            service: record.service,
+            date: record.date,
+            timeIn: record.timeIn,
+            timeOut: record.timeOut,
+            location: record.location
+          }
+        }
+      })
+    } else {
+      // Fallback to attendance ID if no client found
+      router.push({
+        name: 'Notes',
+        params: { id: record.id },
+        state: {
+          clientData: {
+            name: record.client,
+            service: record.service,
+            date: record.date,
+            timeIn: record.timeIn,
+            timeOut: record.timeOut,
+            location: record.location
+          }
+        }
+      })
     }
-  })
+  } catch (error) {
+    console.error('Navigation error:', error)
+  }
 }
 
 const filteredRecords = computed(() => {
@@ -154,7 +195,9 @@ const filteredRecords = computed(() => {
     const matchesLocation = record.location === locationFilter.value
     const matchesDate = record.formattedDate === dateFilter.value
     const matchesSearch = searchQuery.value === '' ||
-      record.client.toLowerCase().includes(searchQuery.value.toLowerCase())
+      record.client.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      (record.clientDetails?.firstName?.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+      (record.clientDetails?.lastName?.toLowerCase().includes(searchQuery.value.toLowerCase()))
 
     return matchesLocation && matchesDate && matchesSearch
   })
@@ -247,7 +290,7 @@ const toggleOneOnOne = async (id) => {
             </div>
             <input type="text" id="client-search"
               class="focus:ring-teal-500 focus:border-teal-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
-              placeholder="Search by client name" v-model="searchQuery">
+              placeholder="Search by client name or ID" v-model="searchQuery">
           </div>
         </div>
       </div>
@@ -281,7 +324,10 @@ const toggleOneOnOne = async (id) => {
                 #</th>
               <th scope="col"
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-teal-500">
-                Client</th>
+                Client ID</th>
+              <th scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-teal-500">
+                Client Name</th>
               <th scope="col"
                 class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-teal-500">
                 Time In</th>
@@ -308,14 +354,18 @@ const toggleOneOnOne = async (id) => {
             <tr v-for="(record, index) in filteredRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ index + 1 }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100">{{
-                record.client }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-100">
+                {{ record.client }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-100">
+                {{ record.clientDetails?.firstName || 'N/A' }} {{ record.clientDetails?.lastName || '' }}
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeIn }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.timeOut
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">{{ record.service
-              }}</td>
+                }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-100">
                 <input type="checkbox" :checked="record.oneOnOne" @change="toggleOneOnOne(record.id)"
                   class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded">
@@ -355,7 +405,7 @@ const toggleOneOnOne = async (id) => {
               </td>
             </tr>
             <tr v-if="filteredRecords.length === 0">
-              <td colspan="9" class="px-6 py-4 text-center text-sm text-gray-500">No attendance records found</td>
+              <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">No attendance records found</td>
             </tr>
           </tbody>
         </table>
@@ -372,7 +422,10 @@ const toggleOneOnOne = async (id) => {
     <div v-if="showDetailsPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Details for {{ selectedRecord.client }}</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            Details for {{ selectedRecord.clientDetails?.firstName || '' }} {{ selectedRecord.clientDetails?.lastName ||
+            '' }} ({{ selectedRecord.client }})
+          </h3>
 
           <div class="space-y-4">
             <div class="flex items-center">
