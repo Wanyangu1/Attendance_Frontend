@@ -1,364 +1,244 @@
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="js">
+import { ref, onMounted } from 'vue'
 import TheFooter from '@/components/TheFooter.vue'
 import TheNavbar from '@/components/TheNavbar.vue'
+import axiosInstance from '@/axiosconfig/axiosInstance'
 
-const searchQuery = ref('')
-const statusFilter = ref('active')
-const showEditModal = ref(false)
-const editedProvider = ref(null)
-
-const providers = ref([
-  {
-    id: 1,
-    lastName: 'Smith',
-    firstName: 'John',
-    location: 'Main Clinic',
-    email: 'john.smith@example.com',
-    phone: '(555) 123-4567',
-    payrollId: 'PR12345',
-    providerId: 'PV98765',
-    status: 'active'
-  },
-  {
-    id: 2,
-    lastName: 'Johnson',
-    firstName: 'Emily',
-    location: 'Downtown Branch',
-    email: 'emily.j@example.com',
-    phone: '(555) 234-5678',
-    payrollId: 'PR12346',
-    providerId: 'PV98766',
-    status: 'active'
-  },
-  {
-    id: 3,
-    lastName: 'Williams',
-    firstName: 'Michael',
-    location: 'Main Clinic',
-    email: 'michael.w@example.com',
-    phone: '(555) 345-6789',
-    payrollId: 'PR12347',
-    providerId: 'PV98767',
-    status: 'inactive'
-  },
-  {
-    id: 4,
-    lastName: 'Brown',
-    firstName: 'Sarah',
-    location: 'Westside Clinic',
-    email: 'sarah.b@example.com',
-    phone: '(555) 456-7890',
-    payrollId: 'PR12348',
-    providerId: 'PV98768',
-    status: 'active'
-  },
-  {
-    id: 5,
-    lastName: 'Jones',
-    firstName: 'David',
-    location: 'Downtown Branch',
-    email: 'david.j@example.com',
-    phone: '(555) 567-8901',
-    payrollId: 'PR12349',
-    providerId: 'PV98769',
-    status: 'pending'
-  },
-  {
-    id: 6,
-    lastName: 'Garcia',
-    firstName: 'Maria',
-    location: 'Main Clinic',
-    email: 'maria.g@example.com',
-    phone: '(555) 678-9012',
-    payrollId: 'PR12350',
-    providerId: 'PV98770',
-    status: 'active'
-  },
-  {
-    id: 7,
-    lastName: 'Miller',
-    firstName: 'James',
-    location: 'Westside Clinic',
-    email: 'james.m@example.com',
-    phone: '(555) 789-0123',
-    payrollId: 'PR12351',
-    providerId: 'PV98771',
-    status: 'inactive'
-  },
-  {
-    id: 8,
-    lastName: 'Davis',
-    firstName: 'Jennifer',
-    location: 'Downtown Branch',
-    email: 'jennifer.d@example.com',
-    phone: '(555) 890-1234',
-    payrollId: 'PR12352',
-    providerId: 'PV98772',
-    status: 'active'
-  },
-  {
-    id: 9,
-    lastName: 'Rodriguez',
-    firstName: 'Robert',
-    location: 'Main Clinic',
-    email: 'robert.r@example.com',
-    phone: '(555) 901-2345',
-    payrollId: 'PR12353',
-    providerId: 'PV98773',
-    status: 'pending'
-  },
-  {
-    id: 10,
-    lastName: 'Martinez',
-    firstName: 'Jessica',
-    location: 'Westside Clinic',
-    email: 'jessica.m@example.com',
-    phone: '(555) 012-3456',
-    payrollId: 'PR12354',
-    providerId: 'PV98774',
-    status: 'active'
-  }
-])
-
-const openEditModal = (provider) => {
-  editedProvider.value = { ...provider }
-  showEditModal.value = true
-}
-
-const saveProvider = () => {
-  const index = providers.value.findIndex(p => p.id === editedProvider.value.id)
-  if (index !== -1) {
-    providers.value[index] = { ...editedProvider.value }
-  }
-  showEditModal.value = false
-}
-
-const filteredProviders = computed(() => {
-  let filtered = providers.value;
-
-  // Filter by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(provider =>
-      provider.lastName.toLowerCase().includes(query) ||
-      provider.firstName.toLowerCase().includes(query) ||
-      provider.email.toLowerCase().includes(query) ||
-      provider.providerId.toLowerCase().includes(query)
-    );
-  }
-
-  // Filter by status
-  if (statusFilter.value !== 'all') {
-    filtered = filtered.filter(provider => provider.status === statusFilter.value);
-  }
-
-  return filtered;
+// Define profile shape with default values
+const profile = ref({
+  name: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  location: 'Main Clinic',
+  payrollId: '',
+  providerId: '',
+  status: 'active' // possible values: 'active', 'inactive', 'pending'
 })
 
-// Group providers by location for partitioning
-const groupedProviders = computed(() => {
-  const groups = {}
-  filteredProviders.value.forEach(provider => {
-    if (!groups[provider.location]) {
-      groups[provider.location] = []
-    }
-    groups[provider.location].push(provider)
-  })
-  return groups
+const isLoading = ref(true)
+const error = ref(null)
+const showEditModal = ref(false)
+const locations = ['Main Clinic', 'Downtown Branch', 'Westside Clinic']
+
+const fetchProfile = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+
+    const response = await axiosInstance.get('/api/profile/')
+    profile.value = response.data
+  } catch (err) {
+    console.error('Error fetching profile:', err)
+    error.value = 'Failed to load profile data'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const saveProfile = async () => {
+  try {
+    isLoading.value = true
+    await axiosInstance.put('/api/profile/', profile.value)
+    showEditModal.value = false
+    alert('Profile updated successfully!')
+  } catch (err) {
+    console.error('Error saving profile:', err)
+    error.value = 'Failed to save profile changes'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchProfile()
 })
 </script>
 
 <template>
   <TheNavbar />
-  <div class="min-h-screen bg-gray-50 p-6">
+
+  <main class="min-h-screen bg-gray-50 p-6">
     <!-- Page Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800">Provider Management</h1>
-      <p class="text-gray-600 mt-2">Manage and view all healthcare providers in your system</p>
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">My Profile</h1>
+      <p class="text-gray-600 mt-2">View and manage your provider profile</p>
+    </header>
+
+    <!-- Loading state -->
+    <div v-if="isLoading" class="text-center py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500 mx-auto"></div>
+      <p class="mt-2 text-gray-600">Loading profile data...</p>
     </div>
 
-    <!-- Search and Filter Section -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <!-- Search Input -->
-        <div class="flex-1">
-          <label for="provider-search" class="block text-sm font-medium text-gray-700 mb-1">Search Providers</label>
-          <div class="relative rounded-md shadow-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                fill="currentColor">
-                <path fill-rule="evenodd"
-                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                  clip-rule="evenodd" />
-              </svg>
-            </div>
-            <input type="text" id="provider-search"
-              class="focus:ring-teal-500 focus:border-teal-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border"
-              placeholder="Search by name, email, or ID" v-model="searchQuery">
-          </div>
+    <!-- Error state -->
+    <div v-else-if="error" class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd" />
+          </svg>
         </div>
-
-        <!-- Status Filter -->
-        <div class="w-full md:w-64">
-          <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">Select status:</label>
-          <select id="status-filter"
-            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border"
-            v-model="statusFilter">
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-          </select>
+        <div class="ml-3">
+          <p class="text-sm text-red-700">{{ error }}</p>
         </div>
       </div>
     </div>
 
-    <!-- Results Summary -->
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-lg font-semibold text-gray-800">Provider List</h2>
-      <p class="text-sm text-gray-600">Total found: {{ filteredProviders.length }}</p>
-    </div>
-
-    <!-- Providers Table with Partitioning -->
-    <div class="space-y-8">
-      <div v-for="[location, locationProviders] in Object.entries(groupedProviders)" :key="location"
-        class="bg-white shadow overflow-hidden rounded-lg">
-        <!-- Location Header -->
-        <div class="bg-teal-100 px-6 py-3 border-b border-teal-200">
-          <h3 class="text-lg font-medium text-teal-800">{{ location }}</h3>
+    <!-- Profile Display -->
+    <section v-else class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-medium text-gray-900">
+            {{ profile.name }} {{ profile.lastName }}
+          </h2>
+          <button @click="showEditModal = true"
+            class="px-3 py-1 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 transition-colors">
+            Edit Profile
+          </button>
         </div>
+        <p class="text-sm text-gray-500 mt-1">{{ profile.email }}</p>
+      </div>
 
-        <!-- Providers Table -->
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  View/Edit</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last
-                  Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  First
-                  Name</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payroll ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Provider ID</th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="provider in locationProviders" :key="provider.id" class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <button @click="openEditModal(provider)" class="text-teal-600 hover:text-teal-900 mr-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path
-                        d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  </button>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ provider.lastName }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ provider.firstName }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ provider.email }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ provider.phone }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ provider.payrollId }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ provider.providerId }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
+      <div class="px-6 py-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Personal Information -->
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Personal Information</h3>
+            <dl class="mt-2 space-y-3">
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">First Name</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.name }}</dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Last Name</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.lastName }}</dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Email</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.email }}</dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.phone }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Professional Information -->
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Professional Information</h3>
+            <dl class="mt-2 space-y-3">
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Location</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.location }}</dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="col-span-2">
                   <span :class="{
                     'px-2 inline-flex text-xs leading-5 font-semibold rounded-full': true,
-                    'bg-green-100 text-green-800': provider.status === 'active',
-                    'bg-red-100 text-red-800': provider.status === 'inactive',
-                    'bg-yellow-100 text-yellow-800': provider.status === 'pending'
+                    'bg-green-100 text-green-800': profile.status === 'active',
+                    'bg-red-100 text-red-800': profile.status === 'inactive',
+                    'bg-yellow-100 text-yellow-800': profile.status === 'pending'
                   }">
-                    {{ provider.status }}
+                    {{ profile.status }}
                   </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Payroll ID</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.payrollId }}</dd>
+              </div>
+              <div class="grid grid-cols-3 gap-4">
+                <dt class="text-sm font-medium text-gray-500">Provider ID</dt>
+                <dd class="col-span-2 text-sm text-gray-900">{{ profile.providerId }}</dd>
+              </div>
+            </dl>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Edit Provider Modal -->
+    <!-- Edit Profile Modal -->
     <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Provider: {{ editedProvider.firstName }} {{
-            editedProvider.lastName }}</h3>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Profile</h3>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form @submit.prevent="saveProfile" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-              <input v-model="editedProvider.firstName" type="text"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <input id="name" v-model="profile.name" type="text" required
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input v-model="editedProvider.lastName" type="text"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <input id="lastName" v-model="profile.lastName" type="text" required
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input v-model="editedProvider.email" type="email"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input id="email" v-model="profile.email" type="email" required
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input v-model="editedProvider.phone" type="tel"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input id="phone" v-model="profile.phone" type="tel"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <select v-model="editedProvider.location"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
-                <option>Main Clinic</option>
-                <option>Downtown Branch</option>
-                <option>Westside Clinic</option>
+              <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <select id="location" v-model="profile.location"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+                <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
               </select>
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select v-model="editedProvider.status"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
+              <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select id="status" v-model="profile.status"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
                 <option value="pending">Pending</option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Payroll ID</label>
-              <input v-model="editedProvider.payrollId" type="text"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Provider ID</label>
-              <input v-model="editedProvider.providerId" type="text"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md border">
-            </div>
-          </div>
 
-          <div class="mt-6 flex justify-end space-x-3">
-            <button @click="showEditModal = false"
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors">
-              Cancel
-            </button>
-            <button @click="saveProvider"
-              class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors">
-              Save Changes
-            </button>
-          </div>
+            <div>
+              <label for="payrollId" class="block text-sm font-medium text-gray-700 mb-1">Payroll ID</label>
+              <input id="payrollId" v-model="profile.payrollId" type="text"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+            </div>
+
+            <div>
+              <label for="providerId" class="block text-sm font-medium text-gray-700 mb-1">Provider ID</label>
+              <input id="providerId" v-model="profile.providerId" type="text"
+                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
+            </div>
+
+            <div class="md:col-span-2 mt-6 flex justify-end space-x-3">
+              <button type="button" @click="showEditModal = false"
+                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" :disabled="isLoading"
+                class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                <span v-if="isLoading">Saving...</span>
+                <span v-else>Save Changes</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
-  </div>
+  </main>
+
   <TheFooter />
 </template>

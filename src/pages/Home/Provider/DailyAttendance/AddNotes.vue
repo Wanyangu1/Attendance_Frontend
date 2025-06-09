@@ -31,8 +31,7 @@ const goals = ref([])
 const newNote = ref('')
 const isLoading = ref(true)
 const error = ref(null)
-const existingProgressId = ref(null) // To track if we're updating existing progress
-const isReadOnly = ref(false) // To track if records should be read-only
+const existingProgressId = ref(null) // To track existing progress ID
 
 // Percentage options for dropdown
 const percentageOptions = ref([
@@ -67,7 +66,6 @@ const fetchClientDetails = async () => {
     isLoading.value = true
     error.value = null
 
-    // Permanent GET request for client details
     const response = await axiosInstance.get(`/api/clients/${client.value.id}`)
     const data = response.data
 
@@ -81,7 +79,6 @@ const fetchClientDetails = async () => {
       phone: data.phone
     }
 
-    // Fetch goals and progress after we have the client details
     await fetchGoals()
     await fetchExistingProgress()
   } catch (err) {
@@ -92,7 +89,7 @@ const fetchClientDetails = async () => {
   }
 }
 
-// Fetch goals for this specific client (permanent GET request)
+// Fetch goals for this specific client
 const fetchGoals = async () => {
   try {
     if (!client.value.id) return;
@@ -100,13 +97,11 @@ const fetchGoals = async () => {
     isLoading.value = true;
     error.value = null;
 
-    // Permanent GET request for goals
     const response = await axiosInstance.get(`/api/goals/${client.value.id}`);
 
-    // Ensure the response data is an array before mapping
     const goalsData = Array.isArray(response.data)
       ? response.data
-      : [response.data]; // If single object, wrap in array
+      : [response.data];
 
     goals.value = goalsData.map(goal => ({
       ...goal,
@@ -123,25 +118,21 @@ const fetchGoals = async () => {
   }
 };
 
-// Fetch existing progress for this client on the current date (permanent GET request)
+// Fetch existing progress for this client on the current date
 const fetchExistingProgress = async () => {
   try {
     const formattedDate = formatDateForAPI(client.value.date)
-    // Permanent GET request for progress
     const response = await axiosInstance.get(`/api/progress/client/${client.value.id}/date/${formattedDate}`)
 
     if (response.data && response.data.length > 0) {
-      const progress = response.data[0] // Get the first progress record for this date
+      const progress = response.data[0]
       existingProgressId.value = progress.id
       newNote.value = progress.general_notes || ''
       client.value.location = progress.location || client.value.location
-      isReadOnly.value = true // Set to read-only once progress exists
 
-      // Permanent GET request for trials
       const trialsResponse = await axiosInstance.get(`/api/progress/${progress.id}/trials/`)
       const trialsData = trialsResponse.data
 
-      // Map trials to goals
       goals.value.forEach(goal => {
         const goalTrials = trialsData
           .filter(trial => trial.goal === goal.id)
@@ -158,57 +149,88 @@ const fetchExistingProgress = async () => {
       })
     } else {
       existingProgressId.value = null
-      isReadOnly.value = false // Allow editing if no progress exists
     }
   } catch (err) {
     console.error('Error fetching existing progress:', err)
     existingProgressId.value = null
-    isReadOnly.value = false
   }
 }
 
-// Add a new trial to a goal (only if not read-only)
+// Add a new trial to a goal
 const addTrial = (goalId) => {
-  if (isReadOnly.value) return;
-
   const goal = goals.value.find(g => g.id === goalId)
   if (goal) {
     goal.trials.push({ progress: '', percentage: '0%', value: '', initials: '' })
   }
 }
 
-// Save or update progress (only create new records, updates are restricted)
+// Delete a trial
+const deleteTrial = async (goalId, trialId, trialIndex) => {
+  try {
+    if (trialId) {
+      await axiosInstance.delete(`/api/trials/${trialId}/`)
+    }
+    const goal = goals.value.find(g => g.id === goalId)
+    if (goal) {
+      goal.trials.splice(trialIndex, 1)
+    }
+  } catch (err) {
+    console.error('Error deleting trial:', err)
+    alert('Failed to delete trial')
+  }
+}
+
+// Validate before saving
+const validateBeforeSave = () => {
+  if (!client.value.location) {
+    alert('Location is required')
+    return false
+  }
+
+  // Check that at least one trial has values
+  const hasValidTrials = goals.value.some(goal =>
+    goal.trials.some(trial => trial.value)
+  )
+
+  if (!hasValidTrials) {
+    alert('At least one trial must have a value')
+    return false
+  }
+
+  return true
+}
+
+// Save or update progress
 const saveProgress = async () => {
   try {
-    if (isReadOnly.value) {
-      alert('Records for this date already exist and cannot be modified.')
-      return;
-    }
+    if (!validateBeforeSave()) return
 
     isLoading.value = true
 
-    // Prepare the main progress data
     const progressData = {
       date: client.value.date,
       location: client.value.location,
       general_notes: newNote.value,
       provider_initials: goals.value[0]?.providerInitials || '',
       client: client.value.id,
-      created_by: 1 // Should be dynamic in production
+      created_by: 1
     }
 
-    // Only create new progress record if none exists
-    const progressResponse = await axiosInstance.post('/api/progress/', progressData)
-    const dailyProgressId = progressResponse.data.id
-    existingProgressId.value = dailyProgressId
-    isReadOnly.value = true // Set to read-only after creation
+    let dailyProgressId = existingProgressId.value
 
-    // Process trials for each goal
+    if (dailyProgressId) {
+      await axiosInstance.put(`/api/progress/${dailyProgressId}/`, progressData)
+    } else {
+      const progressResponse = await axiosInstance.post('/api/progress/', progressData)
+      dailyProgressId = progressResponse.data.id
+      existingProgressId.value = dailyProgressId
+    }
+
     for (const goal of goals.value) {
       for (const trial of goal.trials) {
         const trialNumber = parseInt(trial.progress) || goal.trials.indexOf(trial) + 1
 
-        if (trial.value) { // Only save trials that have values
+        if (trial.value) {
           const trialData = {
             trial_number: trialNumber,
             percentage: trial.percentage,
@@ -218,21 +240,30 @@ const saveProgress = async () => {
             goal: goal.id
           }
 
-          // Create new trial
-          await axiosInstance.post('/api/trials/', trialData)
+          if (trial.id) {
+            await axiosInstance.put(`/api/trials/${trial.id}/`, trialData)
+          } else {
+            const trialResponse = await axiosInstance.post('/api/trials/', trialData)
+            trial.id = trialResponse.data.id
+          }
         }
       }
     }
 
     alert('Progress saved successfully for ' + client.value.firstName + ' ' + client.value.lastName + '!')
-
-    // Refresh the data to show the updated records
     await fetchExistingProgress()
   } catch (err) {
     console.error('Error saving progress:', err)
     alert('Failed to save progress. Please try again.')
   } finally {
     isLoading.value = false
+  }
+}
+
+// Confirm before saving
+const confirmSave = () => {
+  if (confirm('Are you sure you want to save these changes?')) {
+    saveProgress()
   }
 }
 
@@ -295,9 +326,8 @@ onMounted(() => {
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Location:</label>
-          <input v-model="client.location" type="text" :readonly="isReadOnly"
-            class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-            :class="{ 'bg-gray-100': isReadOnly }">
+          <input v-model="client.location" type="text" required
+            class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Bill Type:</label>
@@ -309,26 +339,8 @@ onMounted(() => {
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Date (Arizona):</label>
-          <input v-model="client.date" type="text" :readonly="isReadOnly"
-            class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-            :class="{ 'bg-gray-100': isReadOnly }">
-        </div>
-      </div>
-    </div>
-
-    <!-- Read-only Notice -->
-    <div v-if="isReadOnly" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-            fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              clip-rule="evenodd" />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm text-yellow-700">Records for this date already exist and cannot be modified.</p>
+          <input v-model="client.date" type="text"
+            class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
         </div>
       </div>
     </div>
@@ -365,19 +377,20 @@ onMounted(() => {
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
                   <th scope="col"
                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initials</th>
+                  <th scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="(trial, trialIndex) in goal.trials" :key="trialIndex">
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <input v-model="trial.progress" type="text" :readonly="isReadOnly"
+                    <input v-model="trial.progress" type="text"
                       class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-                      :class="{ 'bg-gray-100': isReadOnly }" :placeholder="`Trial ${trialIndex + 1}`">
+                      :placeholder="`Trial ${trialIndex + 1}`">
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <select v-model="trial.percentage" :disabled="isReadOnly"
-                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-                      :class="{ 'bg-gray-100': isReadOnly }">
+                    <select v-model="trial.percentage"
+                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
                       <option disabled value="">Select Percentage</option>
                       <option v-for="option in percentageOptions" :key="option.value" :value="option.value">
                         {{ option.text }}
@@ -385,9 +398,8 @@ onMounted(() => {
                     </select>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <select v-model="trial.value" :disabled="isReadOnly"
-                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-                      :class="{ 'bg-gray-100': isReadOnly }">
+                    <select v-model="trial.value"
+                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
                       <option disabled value="">Select Value</option>
                       <option v-for="option in valueOptions" :key="option.value" :value="option.value">
                         {{ option.text }}
@@ -395,14 +407,18 @@ onMounted(() => {
                     </select>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <input v-model="trial.initials" type="text" :readonly="isReadOnly"
-                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-                      :class="{ 'bg-gray-100': isReadOnly }">
+                    <input v-model="trial.initials" type="text"
+                      class="focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2">
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button @click="deleteTrial(goal.id, trial.id, trialIndex)" class="text-red-600 hover:text-red-900">
+                      Delete
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <button @click="addTrial(goal.id)" v-if="!isReadOnly"
+            <button @click="addTrial(goal.id)"
               class="mt-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">
               + Add Trial
             </button>
@@ -411,15 +427,13 @@ onMounted(() => {
           <!-- Daily Notes -->
           <div class="mt-6">
             <label class="block text-sm font-medium text-gray-700">Daily Progress Summary Notes</label>
-            <textarea v-model="goal.dailyNotes" rows="3" :readonly="isReadOnly"
-              class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-              :class="{ 'bg-gray-100': isReadOnly }"></textarea>
+            <textarea v-model="goal.dailyNotes" rows="3"
+              class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"></textarea>
 
             <div class="mt-3 flex justify-between items-center">
               <label class="block text-sm font-medium text-gray-700">Provider(s) Initials</label>
-              <input v-model="goal.providerInitials" type="text" :readonly="isReadOnly"
-                class="focus:ring-teal-500 focus:border-teal-500 block w-20 sm:text-sm border-gray-300 rounded-md border p-2"
-                :class="{ 'bg-gray-100': isReadOnly }">
+              <input v-model="goal.providerInitials" type="text"
+                class="focus:ring-teal-500 focus:border-teal-500 block w-20 sm:text-sm border-gray-300 rounded-md border p-2">
             </div>
           </div>
         </div>
@@ -434,14 +448,13 @@ onMounted(() => {
     <!-- General Notes -->
     <div v-if="!isLoading" class="mt-6 bg-white rounded-lg shadow p-6">
       <label class="block text-sm font-medium text-gray-700">Additional Notes</label>
-      <textarea v-model="newNote" rows="3" :readonly="isReadOnly"
-        class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
-        :class="{ 'bg-gray-100': isReadOnly }"></textarea>
+      <textarea v-model="newNote" rows="3"
+        class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"></textarea>
     </div>
 
     <!-- Save Button -->
-    <div v-if="!isLoading && !isReadOnly" class="mt-6 flex justify-end">
-      <button @click="saveProgress" :disabled="isLoading"
+    <div v-if="!isLoading" class="mt-6 flex justify-end">
+      <button @click="confirmSave" :disabled="isLoading"
         class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed">
         <span v-if="isLoading">Saving...</span>
         <span v-else>Save Progress</span>
