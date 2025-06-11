@@ -29,12 +29,12 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="link in quickLinks" :key="link.text">
-              <router-link :to="link.to"
+              <a :href="link.url"
                 class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
                 <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 </div>
                 <span>{{ link.text }}</span>
-              </router-link>
+              </a>
             </li>
           </ul>
         </div>
@@ -47,12 +47,12 @@
           </h3>
           <ul class="space-y-4">
             <li v-for="service in services" :key="service.text">
-              <router-link :to="service.to"
+              <a :href="service.url"
                 class="flex items-center space-x-3 group hover:text-blue-300 transition-colors text-gray-300">
                 <div class="w-2 h-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 </div>
                 <span>{{ service.text }}</span>
-              </router-link>
+              </a>
             </li>
           </ul>
         </div>
@@ -70,7 +70,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Phone</p>
-                <a href="tel:+254700000000" class="text-gray-300 hover:text-blue-300">+1(480)-651-6458</a>
+                <a href="tel:+14806516458" class="text-gray-300 hover:text-blue-300">+1(480)-651-6458</a>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -79,7 +79,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Email</p>
-                <a href="mailto:info@cityradiuschs.org"
+                <a href="mailto:cityradiuschs@gmail.com"
                   class="text-gray-300 hover:text-blue-300">cityradiuschs@gmail.com</a>
               </div>
             </li>
@@ -119,13 +119,11 @@
         </div>
 
         <div class="flex flex-wrap gap-4 justify-center">
-
           <a href="https://acw-portfolio.afroartsafary.com/" target="_blank"
             class="text-blue-200 hover:text-blue-600 text-sm transition-colors">
             Designed by ACW Developers
           </a>
         </div>
-
       </div>
     </div>
   </footer>
@@ -147,18 +145,18 @@ export default {
         { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
       ],
       quickLinks: [
-        { text: 'About Us', to: '/https://www.mycityradiuschs.com/t' },
-        { text: 'Careers', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'News & Updates', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'Patient Resources', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'FAQs', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'About Us', url: 'https://www.mycityradiuschs.com/about' },
+        { text: 'Careers', url: 'https://www.mycityradiuschs.com/careers' },
+        { text: 'News & Updates', url: 'https://www.mycityradiuschs.com/news' },
+        { text: 'Patient Resources', url: 'https://www.mycityradiuschs.com/resources' },
+        { text: 'FAQs', url: 'https://www.mycityradiuschs.com/faq' },
       ],
       services: [
-        { text: 'Counselling services', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'Mental Health Screening', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'Crisis Intervention and Management', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'Personal Care Services', to: '/https://www.mycityradiuschs.com/' },
-        { text: 'Habiliation', to: '/https://www.mycityradiuschs.com/' },
+        { text: 'Counselling services', url: 'https://www.mycityradiuschs.com/services/counselling' },
+        { text: 'Mental Health Screening', url: 'https://www.mycityradiuschs.com/services/screening' },
+        { text: 'Crisis Intervention and Management', url: 'https://www.mycityradiuschs.com/services/crisis' },
+        { text: 'Personal Care Services', url: 'https://www.mycityradiuschs.com/services/personal-care' },
+        { text: 'Habilitation', url: 'https://www.mycityradiuschs.com/services/habilitation' },
       ],
     }
   },
@@ -172,22 +170,6 @@ footer {
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
-}
-
-.router-link-active {
-  color: white;
-  font-weight: 500;
-  position: relative;
-}
-
-.router-link-active:after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
 }
 
 /* Smooth hover transitions */
