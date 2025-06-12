@@ -7,27 +7,48 @@ import axiosInstance from '@/axiosconfig/axiosInstance'
 // Define profile shape with default values
 const profile = ref({
   name: '',
-  lastName: '',
   email: '',
   phone: '',
-  location: 'Main Clinic',
+  location: 'Guadalupe DTA',
   payrollId: '',
   providerId: '',
-  status: 'active' // possible values: 'active', 'inactive', 'pending'
+  status: 'active', // possible values: 'active', 'inactive', 'pending'
+  settings: {
+    street_address: '',
+    address2: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    manager_name: '',
+    provider_id: '',
+    payroll_id: '',
+    location: '',
+    gender: '',
+    race: '',
+    marital_status: '',
+    services_provided: '',
+    additional_info: ''
+  }
 })
 
 const isLoading = ref(true)
 const error = ref(null)
 const showEditModal = ref(false)
-const locations = ['Main Clinic', 'Downtown Branch', 'Westside Clinic']
+const locations = ['Guadalupe DTA', 'Guadalupe DTT', 'Guadalupe Special DTA']
 
 const fetchProfile = async () => {
   try {
     isLoading.value = true
     error.value = null
 
-    const response = await axiosInstance.get('/api/profile/')
-    profile.value = response.data
+    // Fetch basic profile
+    const profileResponse = await axiosInstance.get('/api/profile/')
+    const { name, email, phone, location, payrollId, providerId, status } = profileResponse.data
+    profile.value = { ...profile.value, name, email, phone, location, payrollId, providerId, status }
+
+    // Fetch user settings
+    const settingsResponse = await axiosInstance.get('/api/user/settings/')
+    profile.value.settings = settingsResponse.data
   } catch (err) {
     console.error('Error fetching profile:', err)
     error.value = 'Failed to load profile data'
@@ -39,7 +60,15 @@ const fetchProfile = async () => {
 const saveProfile = async () => {
   try {
     isLoading.value = true
-    await axiosInstance.put('/api/profile/', profile.value)
+    await axiosInstance.put('/api/profile/', {
+      name: profile.value.name,
+      email: profile.value.email,
+      phone: profile.value.phone,
+      location: profile.value.location,
+      payrollId: profile.value.payrollId,
+      providerId: profile.value.providerId,
+      status: profile.value.status
+    })
     showEditModal.value = false
     alert('Profile updated successfully!')
   } catch (err) {
@@ -62,7 +91,7 @@ onMounted(() => {
     <!-- Page Header -->
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800">My Profile</h1>
-      <p class="text-gray-600 mt-2">View and manage your provider profile</p>
+      <p class="text-gray-600 mt-2">View and manage your employee profile</p>
     </header>
 
     <!-- Loading state -->
@@ -89,75 +118,140 @@ onMounted(() => {
 
     <!-- Profile Display -->
     <section v-else class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
+      <!-- Profile Header -->
+      <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-500">
         <div class="flex justify-between items-center">
-          <h2 class="text-lg font-medium text-gray-900">
-            {{ profile.name }} {{ profile.lastName }}
-          </h2>
+          <div>
+            <h2 class="text-2xl font-bold text-white">
+              {{ profile.name }}
+            </h2>
+            <p class="text-teal-100 mt-1">{{ profile.email }}</p>
+          </div>
           <button @click="showEditModal = true"
-            class="px-3 py-1 bg-teal-600 text-white rounded-md text-sm hover:bg-teal-700 transition-colors">
+            class="px-4 py-2 bg-white text-teal-600 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors shadow">
             Edit Profile
           </button>
         </div>
-        <p class="text-sm text-gray-500 mt-1">{{ profile.email }}</p>
       </div>
 
       <div class="px-6 py-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Personal Information -->
-          <div>
-            <h3 class="text-sm font-medium text-gray-500">Personal Information</h3>
-            <dl class="mt-2 space-y-3">
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">First Name</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.name }}</dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Last Name</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.lastName }}</dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Email</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.email }}</dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Phone</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.phone }}</dd>
-              </div>
-            </dl>
+          <div class="lg:col-span-1">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Personal Information</h3>
+              <dl class="space-y-4">
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Full Name</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.name }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Email</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.email }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Phone</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.phone }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Gender</dt>
+                  <dd class="w-2/3 text-sm text-gray-900 capitalize">{{ profile.settings.gender }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Race</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.race }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Marital Status</dt>
+                  <dd class="w-2/3 text-sm text-gray-900 capitalize">{{ profile.settings.marital_status }}</dd>
+                </div>
+              </dl>
+            </div>
           </div>
 
           <!-- Professional Information -->
-          <div>
-            <h3 class="text-sm font-medium text-gray-500">Professional Information</h3>
-            <dl class="mt-2 space-y-3">
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Location</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.location }}</dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Status</dt>
-                <dd class="col-span-2">
-                  <span :class="{
-                    'px-2 inline-flex text-xs leading-5 font-semibold rounded-full': true,
-                    'bg-green-100 text-green-800': profile.status === 'active',
-                    'bg-red-100 text-red-800': profile.status === 'inactive',
-                    'bg-yellow-100 text-yellow-800': profile.status === 'pending'
-                  }">
-                    {{ profile.status }}
-                  </span>
-                </dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Payroll ID</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.payrollId }}</dd>
-              </div>
-              <div class="grid grid-cols-3 gap-4">
-                <dt class="text-sm font-medium text-gray-500">Provider ID</dt>
-                <dd class="col-span-2 text-sm text-gray-900">{{ profile.providerId }}</dd>
-              </div>
-            </dl>
+          <div class="lg:col-span-1">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Professional Information
+              </h3>
+              <dl class="space-y-4">
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Status</dt>
+                  <dd class="w-2/3 text-sm">
+                    <span :class="{
+                      'px-2 inline-flex text-xs leading-5 font-semibold rounded-full': true,
+                      'bg-green-100 text-green-800': profile.status === 'active' || !profile.status,
+                      'bg-red-100 text-red-800': profile.status === 'inactive',
+                      'bg-yellow-100 text-yellow-800': profile.status === 'pending'
+                    }">
+                      {{ profile.status || 'active' }}
+                    </span>
+                  </dd>
+                </div>
+
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Location</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.location }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Payroll ID</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.payroll_id }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Provider ID</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.provider_id }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Manager</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.manager_name }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Services</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.services_provided }}</dd>
+                </div>
+              </dl>
+            </div>
           </div>
+
+          <!-- Address Information -->
+          <div class="lg:col-span-1">
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Address Information</h3>
+              <dl class="space-y-4">
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Street</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.street_address }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Address 2</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.address2 }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">City</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.city }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">State</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.state }}</dd>
+                </div>
+                <div class="flex items-start">
+                  <dt class="w-1/3 text-sm font-medium text-gray-500">Zip Code</dt>
+                  <dd class="w-2/3 text-sm text-gray-900">{{ profile.settings.zip_code }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="mt-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Additional Information</h3>
+          <p class="text-sm text-gray-700" v-if="profile.settings.additional_info">
+            {{ profile.settings.additional_info }}
+          </p>
+          <p class="text-sm text-gray-500 italic" v-else>
+            No additional information provided.
+          </p>
         </div>
       </div>
     </section>
@@ -170,14 +264,8 @@ onMounted(() => {
 
           <form @submit.prevent="saveProfile" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input id="name" v-model="profile.name" type="text" required
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
-            </div>
-
-            <div>
-              <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input id="lastName" v-model="profile.lastName" type="text" required
                 class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
 
@@ -209,12 +297,6 @@ onMounted(() => {
                 <option value="inactive">Inactive</option>
                 <option value="pending">Pending</option>
               </select>
-            </div>
-
-            <div>
-              <label for="payrollId" class="block text-sm font-medium text-gray-700 mb-1">Payroll ID</label>
-              <input id="payrollId" v-model="profile.payrollId" type="text"
-                class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm">
             </div>
 
             <div>
