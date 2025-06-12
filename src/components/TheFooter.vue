@@ -145,11 +145,11 @@ export default {
         { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
       ],
       quickLinks: [
-        { text: 'About Us', url: 'https://www.mycityradiuschs.com/about' },
-        { text: 'Careers', url: 'https://www.mycityradiuschs.com/careers' },
-        { text: 'News & Updates', url: 'https://www.mycityradiuschs.com/news' },
-        { text: 'Patient Resources', url: 'https://www.mycityradiuschs.com/resources' },
-        { text: 'FAQs', url: 'https://www.mycityradiuschs.com/faq' },
+        { text: 'About Us', url: 'https://www.mycityradiuschs.com/behavioral-health-care-about-us' },
+        { text: 'Careers', url: 'https://www.mycityradiuschs.com/behavioral-health-care-careers' },
+        { text: 'News & Updates', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
+        { text: 'Patient Resources', url: 'https://www.mycityradiuschs.com/behavioral-health-care-services' },
+        { text: 'FAQs', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
       ],
       services: [
         { text: 'Counselling services', url: 'https://www.mycityradiuschs.com/services/counselling' },

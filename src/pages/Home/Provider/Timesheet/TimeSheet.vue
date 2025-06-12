@@ -264,11 +264,8 @@ onMounted(fetchData)
     <!-- Action Buttons -->
     <div class="mt-6 flex justify-end space-x-3">
       <button @click="exportToExcel"
-        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+        class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700">
         Export to Excel
-      </button>
-      <button class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700">
-        Print Timesheet
       </button>
     </div>
   </div>
