@@ -121,11 +121,19 @@ const fetchGoals = async () => {
 // Fetch existing progress for this client on the current date
 const fetchExistingProgress = async () => {
   try {
-    const formattedDate = formatDateForAPI(client.value.date)
-    const response = await axiosInstance.get(`/api/progress/client/${client.value.id}/date/${formattedDate}`)
+    const response = await axiosInstance.get('/api/progress/')
 
-    if (response.data && response.data.length > 0) {
-      const progress = response.data[0]
+    // Filter progress records for the current client and date
+    const formattedDate = formatDateForAPI(client.value.date)
+    const progressForDate = response.data.filter(item => {
+      // Convert the item's date to match your formatted date (MM-DD-YYYY)
+      const itemDateParts = item.date.split('/')
+      const itemFormattedDate = `${itemDateParts[0]}-${itemDateParts[1]}-${itemDateParts[2]}`
+      return itemFormattedDate === formattedDate && item.client === client.value.id
+    })
+
+    if (progressForDate.length > 0) {
+      const progress = progressForDate[0]
       existingProgressId.value = progress.id
       newNote.value = progress.general_notes || ''
       client.value.location = progress.location || client.value.location
@@ -207,10 +215,11 @@ const saveProgress = async () => {
 
     isLoading.value = true
 
+    // In saveProgress method, modify the progressData creation:
     const progressData = {
       date: client.value.date,
       location: client.value.location,
-      general_notes: newNote.value,
+      general_notes: goals.value.map(g => g.dailyNotes).filter(Boolean).join('\n\n') + '\n\n' + newNote.value,
       provider_initials: goals.value[0]?.providerInitials || '',
       client: client.value.id,
       created_by: 1
@@ -427,7 +436,7 @@ onMounted(() => {
           <!-- Daily Notes -->
           <div class="mt-6">
             <label class="block text-sm font-medium text-gray-700">Daily Progress Summary Notes</label>
-            <textarea v-model="goal.dailyNotes" rows="3"
+            <textarea v-model="newNote" rows="3"
               class="mt-1 focus:ring-teal-500 focus:border-teal-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"></textarea>
 
             <div class="mt-3 flex justify-between items-center">
