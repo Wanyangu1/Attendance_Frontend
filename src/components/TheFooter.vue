@@ -89,8 +89,7 @@
               </div>
               <div>
                 <p class="font-medium text-white">Corporate Office:</p>
-                <p class="text-gray-300">6125 S Ash Ave.
-                  Tempe, AZ 85283</p>
+                <p class="text-gray-300">6125 S Ash Ave. Tempe, AZ 85283</p>
               </div>
             </li>
             <li class="flex items-start space-x-4">
@@ -113,8 +112,7 @@
       <div class="flex flex-col md:flex-row justify-between items-center">
         <div class="mb-4 md:mb-0">
           <p class="text-sm text-gray-400">
-            &copy; {{ new Date().getFullYear() }} City Radius Community Health Service. All rights
-            reserved.
+            &copy; {{ new Date().getFullYear() }} City Radius Community Health Service. All rights reserved.
           </p>
         </div>
 
@@ -129,50 +127,37 @@
   </footer>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      socialLinks: [
-        { name: 'Facebook', url: 'https://facebook.com/cityradiuschs', icon: 'fab fa-facebook-f' },
-        { name: 'Twitter', url: 'https://twitter.com/cityradiuschs', icon: 'fab fa-twitter' },
-        { name: 'Instagram', url: 'https://instagram.com/cityradiuschs', icon: 'fab fa-instagram' },
-        {
-          name: 'LinkedIn',
-          url: 'https://linkedin.com/company/cityradiuschs',
-          icon: 'fab fa-linkedin-in',
-        },
-        { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
-      ],
-      quickLinks: [
-        { text: 'About Us', url: 'https://www.mycityradiuschs.com/behavioral-health-care-about-us' },
-        { text: 'Careers', url: 'https://www.mycityradiuschs.com/behavioral-health-care-careers' },
-        { text: 'News & Updates', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
-        { text: 'Patient Resources', url: 'https://www.mycityradiuschs.com/behavioral-health-care-services' },
-        { text: 'FAQs', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
-      ],
-      services: [
-        { text: 'Counselling services', url: 'https://www.mycityradiuschs.com/services/counselling' },
-        { text: 'Mental Health Screening', url: 'https://www.mycityradiuschs.com/services/screening' },
-        { text: 'Crisis Intervention and Management', url: 'https://www.mycityradiuschs.com/services/crisis' },
-        { text: 'Personal Care Services', url: 'https://www.mycityradiuschs.com/services/personal-care' },
-        { text: 'Habilitation', url: 'https://www.mycityradiuschs.com/services/habilitation' },
-      ],
-    }
-  },
-}
+<script setup>
+const socialLinks = [
+  { name: 'Facebook', url: 'https://facebook.com/cityradiuschs', icon: 'fab fa-facebook-f' },
+  { name: 'Twitter', url: 'https://twitter.com/cityradiuschs', icon: 'fab fa-twitter' },
+  { name: 'Instagram', url: 'https://instagram.com/cityradiuschs', icon: 'fab fa-instagram' },
+  { name: 'LinkedIn', url: 'https://linkedin.com/company/cityradiuschs', icon: 'fab fa-linkedin-in' },
+  { name: 'YouTube', url: 'https://youtube.com/cityradiuschs', icon: 'fab fa-youtube' },
+]
+
+const quickLinks = [
+  { text: 'About Us', url: 'https://www.mycityradiuschs.com/behavioral-health-care-about-us' },
+  { text: 'Careers', url: 'https://www.mycityradiuschs.com/behavioral-health-care-careers' },
+  { text: 'News & Updates', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
+  { text: 'Patient Resources', url: 'https://www.mycityradiuschs.com/behavioral-health-care-services' },
+  { text: 'FAQs', url: 'https://www.mycityradiuschs.com/behavioral-health-care-faqs' },
+]
+
+const services = [
+  { text: 'Counselling services', url: 'https://www.mycityradiuschs.com/services/counselling' },
+  { text: 'Mental Health Screening', url: 'https://www.mycityradiuschs.com/services/screening' },
+  { text: 'Crisis Intervention and Management', url: 'https://www.mycityradiuschs.com/services/crisis' },
+  { text: 'Personal Care Services', url: 'https://www.mycityradiuschs.com/services/personal-care' },
+  { text: 'Habilitation', url: 'https://www.mycityradiuschs.com/services/habilitation' },
+]
 </script>
 
 <style scoped>
 footer {
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Smooth hover transitions */
 a,
 button {
   transition:
@@ -181,7 +166,6 @@ button {
     transform 0.25s ease;
 }
 
-/* Animation for social icons */
 @keyframes float {
   0% {
     transform: translateY(0);
@@ -200,7 +184,6 @@ button {
   animation: float 1s ease-in-out infinite;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .grid-cols-4 {
     grid-template-columns: repeat(2, 1fr);
