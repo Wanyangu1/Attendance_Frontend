@@ -15,7 +15,7 @@ const fetchUserProfile = async () => {
     const response = await axiosInstance.get('/api/profile')
     user.value = response.data
   } catch (error) {
-    console.error('Error fetching user profile:', error)
+    console.error('User profile not found:', error)
   }
 }
 
