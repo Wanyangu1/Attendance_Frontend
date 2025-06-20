@@ -76,7 +76,7 @@ const changePassword = async () => {
 
   try {
     const response = await axiosInstance.post(
-      'http://localhost:8000/api/change-password/',
+      'https://backend.mycityradiusattendance.com/api/change-password/',
       {
         current_password: form.current_password,
         new_password: form.new_password,
