@@ -32,7 +32,6 @@ function updateArizonaTime() {
   const formatter = new Intl.DateTimeFormat('en-US', options)
   const parts = formatter.formatToParts(new Date())
 
-  // Build the string with consistent spacing
   currentDateTime.value = parts.map(part => part.value).join('')
 }
 

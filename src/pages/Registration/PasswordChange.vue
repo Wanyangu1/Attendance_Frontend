@@ -18,7 +18,7 @@ const errors = reactive({
 
 const message = reactive({
   text: '',
-  type: '', // 'success' or 'error'
+  type: '',
 })
 
 const loading = ref(false)
