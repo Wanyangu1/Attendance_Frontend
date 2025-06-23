@@ -39,11 +39,11 @@ let intervalId
 
 onMounted(() => {
   updateArizonaTime() // Initial call
-  intervalId = setInterval(updateArizonaTime, 1000) // Update every second
+  intervalId = setInterval(updateArizonaTime, 1000) 
 })
 
 onBeforeUnmount(() => {
-  clearInterval(intervalId) // Clean up on component unmount
+  clearInterval(intervalId) 
 })
 
 const handleLogin = async () => {

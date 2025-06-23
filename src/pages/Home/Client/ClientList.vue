@@ -44,15 +44,15 @@ const fetchClients = async () => {
 
     // Fetch all clients
     const response = await axiosInstance.get('/api/clients/')
-    console.log('All clients:', response.data) // Debug log
+    console.log('All clients:', response.data)
 
     // Filter clients where client.user matches user.id
     clients.value = response.data.filter(client => {
-      console.log(`Checking client ${client.id}: client.user=${client.user} vs profile.id=${user.id}`) // Debug log
+      console.log(`Checking client ${client.id}: client.user=${client.user} vs profile.id=${user.id}`)
       return client.user === user.id
     })
 
-    console.log('Filtered clients:', clients.value) // Debug log
+    console.log('Filtered clients:', clients.value)
   } catch (err) {
     error.value = err.response?.data?.message || err.message || 'Failed to fetch clients'
     console.error('Error fetching clients:', err)

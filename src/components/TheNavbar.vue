@@ -175,7 +175,6 @@ const clearHoveredItem = () => {
 
             <span class="relative z-10">Provider</span>
 
-            <!-- Chevron Down Icon -->
             <svg xmlns="http://www.w3.org/2000/svg"
               class="h-4 w-4 ml-1 text-teal-200 group-hover:text-teal-300 transition-colors" fill="none"
               viewBox="0 0 24 24" stroke="currentColor">
