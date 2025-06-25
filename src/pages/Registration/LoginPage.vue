@@ -38,7 +38,7 @@ function updateArizonaTime() {
 let intervalId
 
 onMounted(() => {
-  updateArizonaTime() // Initial call
+  updateArizonaTime() 
   intervalId = setInterval(updateArizonaTime, 1000) 
 })
 

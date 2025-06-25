@@ -61,13 +61,11 @@ const fetchClients = async () => {
   }
 }
 
-// Update client with authorization check
 const updateClient = async (clientData) => {
   try {
     isLoading.value = true
     error.value = null
 
-    // Verify client belongs to current user
     const user = await fetchProfile()
     if (clientData.user !== user.id) {
       throw new Error('Unauthorized: You can only update your own clients')
