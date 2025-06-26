@@ -91,7 +91,6 @@ const changePassword = async () => {
     message.text = response.data.detail || 'Password changed successfully'
     message.type = 'success'
 
-    // Reset form
     form.current_password = ''
     form.new_password = ''
     form.confirm_password = ''

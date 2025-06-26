@@ -26,7 +26,6 @@ const props = defineProps({
 })
 
 const currentDate = computed(() => {
-  // Create date object and convert to Arizona time (America/Phoenix)
   const azDate = new Date().toLocaleString('en-US', {
     timeZone: 'America/Phoenix'
   });
