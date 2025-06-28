@@ -95,7 +95,6 @@ const changePassword = async () => {
     form.new_password = ''
     form.confirm_password = ''
 
-    // Hide password visibility toggles
     showPassword.current = false
     showPassword.new = false
     showPassword.confirm = false
@@ -129,7 +128,6 @@ const togglePasswordVisibility = (field) => {
   <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-white py-12 px-4 sm:px-6 lg:px-8 animate-fade-in">
     <div
       class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-      <!-- Card Header with Gradient Background -->
       <div class="bg-gradient-to-r from-teal-600 to-emerald-500  p-6 text-white">
         <div class="flex items-center space-x-3">
           <!-- Animated Lock Icon -->
@@ -303,7 +301,6 @@ const togglePasswordVisibility = (field) => {
             </transition>
           </div>
 
-          <!-- Success/Error Message with Animation -->
           <transition name="slide-fade">
             <div v-if="message.text" class="rounded-lg p-4 border-l-4" :class="{
               'bg-green-50 text-green-800 border-green-500': message.type === 'success',

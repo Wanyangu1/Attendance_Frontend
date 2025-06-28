@@ -86,7 +86,6 @@ const clearHoveredItem = () => {
           </div>
         </button>
 
-        <!-- Desktop Navigation (center) -->
         <nav class="hidden lg:flex lg:items-center lg:justify-center lg:space-x-1 lg:flex-1">
           <div
             class="absolute h-10 rounded-full bg-teal-400/10 pointer-events-none transition-all duration-500 ease-out"
