@@ -346,7 +346,6 @@ const togglePasswordVisibility = (field) => {
 </template>
 
 <style>
-/* Animations */
 .animate-fade-in {
   animation: fadeIn 0.5s ease-in-out;
 }
