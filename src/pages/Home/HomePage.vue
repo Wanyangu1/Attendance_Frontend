@@ -55,6 +55,32 @@ const pauseReason = ref('')
 const showPauseModal = ref(false)
 const showResumeModal = ref(false)
 const userId = ref(null)
+const locationLoading = ref(false)
+
+// Location functions
+const getCurrentLocation = () => {
+  return new Promise((resolve, reject) => {
+    locationLoading.value = true
+    if (!navigator.geolocation) {
+      locationLoading.value = false
+      reject(new Error('Geolocation is not supported by your browser'))
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          locationLoading.value = false
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          })
+        },
+        (error) => {
+          locationLoading.value = false
+          reject(error)
+        }
+      )
+    }
+  })
+}
 
 // Open pause modal
 const openPauseModal = () => {
@@ -68,16 +94,26 @@ const pauseTimer = async () => {
     return
   }
 
-  pauseStartTime.value = new Date()
-  isTimerPaused.value = true
-  showPauseModal.value = false
-
   try {
+    let location = { latitude: null, longitude: null }
+    try {
+      location = await getCurrentLocation()
+    } catch (geoError) {
+      console.warn('Could not get location:', geoError)
+      showNotification('Could not get your location. Pause recorded without location.', 'warning')
+    }
+
+    pauseStartTime.value = new Date()
+    isTimerPaused.value = true
+    showPauseModal.value = false
+
     await axiosInstance.post('api/attendance/pause/', {
       reason: pauseReason.value,
       pause_time: pauseStartTime.value.toISOString(),
       user: userId.value,
       user_name: employee.value.name,
+      latitude: location.latitude,
+      longitude: location.longitude
     })
     await checkPauseState()
     showNotification('Timer paused successfully')
@@ -90,7 +126,6 @@ const pauseTimer = async () => {
 
 // Trigger resume process
 const resumeTimer = () => {
-
   const now = new Date()
   // Calculate time away in minutes as integer
   timeAway.value = (now - new Date(pauseStartTime.value)) / (1000 * 60)
@@ -102,14 +137,24 @@ const confirmResume = async () => {
   const resumeTime = new Date()
 
   try {
+    let location = { latitude: null, longitude: null }
+    try {
+      location = await getCurrentLocation()
+    } catch (geoError) {
+      console.warn('Could not get location:', geoError)
+      showNotification('Could not get your location. Resume recorded without location.', 'warning')
+    }
+
     await axiosInstance.post('api/attendance/resume/', {
-      time_record: timeAway.value, // Now sending as integer minutes
+      time_record: timeAway.value,
       pause_reason: pauseReason.value,
       resume_time: resumeTime.toISOString(),
       user: userId.value,
       user_name: employee.value.name,
+      latitude: location.latitude,
+      longitude: location.longitude
     })
-    await checkPauseState() // Add this line
+    await checkPauseState()
     isTimerPaused.value = false
     pauseStartTime.value = null
     showResumeModal.value = false
@@ -177,7 +222,6 @@ const todayHours = computed(() => {
   // Return the hours if found, otherwise return 0
   return todayRecord ? todayRecord.hours : 0;
 });
-
 
 // Helper Methods
 const showNotification = (message, type = 'success') => {
@@ -328,7 +372,18 @@ const fetchTodayStatus = async () => {
 // Action Methods
 const checkIn = async () => {
   try {
-    const response = await axiosInstance.post('api/attendance/checkin/')
+    let location = { latitude: null, longitude: null }
+    try {
+      location = await getCurrentLocation()
+    } catch (geoError) {
+      console.warn('Could not get location:', geoError)
+      showNotification('Could not get your location. Check-in recorded without location.', 'warning')
+    }
+
+    const response = await axiosInstance.post('api/attendance/checkin/', {
+      latitude: location.latitude,
+      longitude: location.longitude
+    })
     const record = response.data
 
     todayCheckIn.value = formatTime(record.check_in)
@@ -361,7 +416,18 @@ const checkIn = async () => {
 
 const checkOut = async () => {
   try {
-    const response = await axiosInstance.post('api/attendance/checkout/')
+    let location = { latitude: null, longitude: null }
+    try {
+      location = await getCurrentLocation()
+    } catch (geoError) {
+      console.warn('Could not get location:', geoError)
+      showNotification('Could not get your location. Check-out recorded without location.', 'warning')
+    }
+
+    const response = await axiosInstance.post('api/attendance/checkout/', {
+      latitude: location.latitude,
+      longitude: location.longitude
+    })
     const record = response.data
 
     todayCheckOut.value = formatTime(record.check_out)
@@ -443,19 +509,26 @@ onMounted(() => {
           'flex items-center p-4 rounded-lg shadow-xl border-l-4': true,
           'bg-green-50 text-green-800 border-green-500': notification.type === 'success',
           'bg-red-50 text-red-800 border-red-500': notification.type === 'error',
+          'bg-yellow-50 text-yellow-800 border-yellow-500': notification.type === 'warning',
           'animate-fade-in-up': notification.show,
         }">
           <div :class="{
             'flex-shrink-0': true,
             'text-green-500': notification.type === 'success',
             'text-red-500': notification.type === 'error',
+            'text-yellow-500': notification.type === 'warning',
           }">
             <svg v-if="notification.type === 'success'" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <svg v-else class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg v-else-if="notification.type === 'error'" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <svg v-else class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
           <div class="ml-3">
@@ -590,19 +663,33 @@ onMounted(() => {
             </h2>
           </div>
           <div class="px-6 py-5 space-y-4">
-            <button @click="checkIn" :disabled="!!todayCheckIn"
+            <button @click="checkIn" :disabled="!!todayCheckIn || locationLoading"
               class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]">
-              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <svg v-else class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
-              Check In
+              {{ locationLoading ? 'Getting location...' : 'Check In' }}
             </button>
-            <button @click="checkOut" :disabled="!todayCheckIn || !!todayCheckOut"
+            <button @click="checkOut" :disabled="!todayCheckIn || !!todayCheckOut || locationLoading"
               class="w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-[1.02]">
-              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <svg v-else class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
               </svg>
-              Check Out
+              {{ locationLoading ? 'Getting location...' : 'Check Out' }}
             </button>
             <button @click="showTimeHistory"
               class="w-full flex items-center justify-center px-6 py-3 border border-gray-300 rounded-xl shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-[1.02]">
@@ -734,24 +821,38 @@ onMounted(() => {
           </div>
           <!-- Modified pause/resume buttons section -->
           <div class="flex justify-center space-x-4 mt-4">
-            <button v-if="!isTimerPaused" @click="openPauseModal"
-              class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center">
-              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button v-if="!isTimerPaused" @click="openPauseModal" :disabled="locationLoading"
+              class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <svg v-else class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Pause Timer
+              {{ locationLoading ? 'Getting location...' : 'Pause Timer' }}
             </button>
 
-            <button v-else @click="resumeTimer"
-              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center">
-              <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button v-else @click="resumeTimer" :disabled="locationLoading"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <svg v-else class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Resume Timer
+              {{ locationLoading ? 'Getting location...' : 'Resume Timer' }}
             </button>
           </div>
 
@@ -788,9 +889,16 @@ onMounted(() => {
                 class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 Cancel
               </button>
-              <button @click="pauseTimer" type="button"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                Confirm Pause
+              <button @click="pauseTimer" type="button" :disabled="locationLoading"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-70 disabled:cursor-not-allowed">
+                <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                {{ locationLoading ? 'Processing...' : 'Confirm Pause' }}
               </button>
             </div>
           </div>
@@ -829,9 +937,16 @@ onMounted(() => {
                 class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
                 Cancel
               </button>
-              <button @click="confirmResume" type="button"
-                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-                Resume Timer
+              <button @click="confirmResume" type="button" :disabled="locationLoading"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed">
+                <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                  </path>
+                </svg>
+                {{ locationLoading ? 'Processing...' : 'Resume Timer' }}
               </button>
             </div>
           </div>
