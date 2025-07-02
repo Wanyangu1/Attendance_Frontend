@@ -131,7 +131,6 @@ const updateSummary = (attendanceData) => {
     .reduce((sum, entry) => sum + entry.billableUnits, 0)
 }
 
-// Format time from "HH:MM:SS" to "HH:MM AM/PM"
 const formatTime = (timeString) => {
   if (!timeString) return 'N/A'
 

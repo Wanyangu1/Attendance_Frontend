@@ -449,7 +449,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- No Goals Message -->
     <div v-if="!isLoading && goals.length === 0" class="bg-white rounded-lg shadow p-6 text-center">
       <p class="text-gray-600">No goals found for this client.</p>
     </div>
