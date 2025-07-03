@@ -715,13 +715,33 @@ onMounted(() => {
             Recent Days Worked
           </h2>
           <!-- In the Recent Days Worked section header -->
-          <div class="px-6 py-5 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
+          <div class="px-4 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
+
+            <!-- NAME: separate on small screens, inline on large -->
+            <div class="sm:hidden">
+              <p
+                class="text-sm text-blue-600 font-medium border border-blue-300 rounded-md px-3 py-1 bg-blue-100 transition-colors">
+                Name: {{ employee.name || 'Not specified' }}
+              </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0 w-full sm:w-auto">
+
+              <!-- Name for large screens -->
+              <p
+                class="hidden sm:block text-sm text-blue-600 font-medium border-2 border-blue-300 rounded-md px-3 py-1 bg-blue-100 transition-colors">
+                Name: {{ employee.name || 'Not specified' }}
+              </p>
+
+              <!-- Pay Period -->
               <div class="flex items-center space-x-2 bg-gray-700 px-3 py-1 rounded-full">
                 <span class="text-xs text-gray-300">Pay Period:</span>
-                <span class="text-xs font-medium text-white">{{ payPeriod.start || '--/--/----' }} - {{ payPeriod.end ||
-                  '--/--/----' }}</span>
+                <span class="text-xs font-medium text-white">
+                  {{ payPeriod.start || '--/--/----' }} - {{ payPeriod.end || '--/--/----' }}
+                </span>
               </div>
+
+              <!-- Print Button -->
               <button @click="printTimeRecords"
                 class="flex items-center text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm transition-colors">
                 <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -730,6 +750,7 @@ onMounted(() => {
                 </svg>
                 Print
               </button>
+
             </div>
           </div>
         </div>
