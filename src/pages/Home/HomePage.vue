@@ -47,15 +47,66 @@ const notification = ref({
   message: '',
   type: 'success',
 })
-// Reactive states
 const isTimerPaused = ref(false)
 const pauseStartTime = ref(null)
-const timeAway = ref(0.0) // Will store minutes as integer
+const timeAway = ref(0.0)
 const pauseReason = ref('')
 const showPauseModal = ref(false)
 const showResumeModal = ref(false)
 const userId = ref(null)
 const locationLoading = ref(false)
+
+// Computed properties
+const totalHours = computed(() => {
+  return recentDays.value.reduce((total, day) => total + day.hours, 0)
+})
+
+const ratePerHour = computed(() => {
+  return recentDays.value[0]?.rate_per_hour || 0
+})
+
+const formattedRate = computed(() => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(ratePerHour.value)
+})
+
+const biweeklyTotalHours = computed(() => {
+  return recentDays.value[0]?.biweekly_total_hours || 80
+})
+
+const biweeklyProgress = computed(() => {
+  return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100)
+})
+
+const currentDate = computed(() => {
+  const azDate = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Phoenix'
+  });
+  return new Date(azDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+})
+
+const biweeklyHours = computed(() => {
+  return recentDays.value.reduce((total, day) => {
+    return total + (day.hours || 0)
+  }, 0)
+})
+
+const todayHours = computed(() => {
+  const todayStr = new Date().toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const todayRecord = recentDays.value.find(day => day.date === todayStr);
+  return todayRecord ? todayRecord.hours : 0;
+})
 
 // Location functions
 const getCurrentLocation = () => {
@@ -82,12 +133,11 @@ const getCurrentLocation = () => {
   })
 }
 
-// Open pause modal
+// Timer control functions
 const openPauseModal = () => {
   showPauseModal.value = true
 }
 
-// Pause the timer
 const pauseTimer = async () => {
   if (!pauseReason.value.trim()) {
     showNotification('Please enter a reason for pausing', 'error')
@@ -124,15 +174,12 @@ const pauseTimer = async () => {
   }
 }
 
-// Trigger resume process
 const resumeTimer = () => {
   const now = new Date()
-  // Calculate time away in minutes as integer
   timeAway.value = (now - new Date(pauseStartTime.value)) / (1000 * 60)
   showResumeModal.value = true
 }
 
-// Confirm resume and send to backend
 const confirmResume = async () => {
   const resumeTime = new Date()
 
@@ -166,62 +213,6 @@ const confirmResume = async () => {
     showNotification('Failed to resume timer', 'error')
   }
 }
-
-// Add these computed properties
-const ratePerHour = computed(() => {
-  return recentDays.value[0]?.rate_per_hour || 0
-})
-
-const formattedRate = computed(() => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(ratePerHour.value)
-})
-
-const biweeklyTotalHours = computed(() => {
-  return recentDays.value[0]?.biweekly_total_hours || 80 // Default to 80 if not set
-})
-
-const biweeklyProgress = computed(() => {
-  return Math.min(100, (biweeklyHours.value / biweeklyTotalHours.value) * 100)
-})
-
-const currentDate = computed(() => {
-  // Create date object and convert to Arizona time (America/Phoenix)
-  const azDate = new Date().toLocaleString('en-US', {
-    timeZone: 'America/Phoenix'
-  });
-
-  // Convert to Date object and format
-  return new Date(azDate).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-});
-
-const biweeklyHours = computed(() => {
-  return recentDays.value.reduce((total, day) => {
-    return total + (day.hours || 0)
-  }, 0)
-})
-
-const todayHours = computed(() => {
-  // Get today's date in the same format as stored in recentDays
-  const todayStr = new Date().toLocaleDateString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  // Find today's record in recentDays
-  const todayRecord = recentDays.value.find(day => day.date === todayStr);
-
-  // Return the hours if found, otherwise return 0
-  return todayRecord ? todayRecord.hours : 0;
-});
 
 // Helper Methods
 const showNotification = (message, type = 'success') => {
@@ -267,7 +258,6 @@ const fetchSettings = async () => {
     const response = await axiosInstance.get('/api/user/settings/')
     employee.value.settings = response.data
 
-    // Map settings to employee structure
     employee.value.address = {
       street: response.data.street_address || '',
       street2: response.data.address2 || '',
@@ -294,20 +284,14 @@ const fetchEmployeeData = async () => {
     loading.value = true
     error.value = null
 
-    // Fetch profile data
     const profileResponse = await axiosInstance.get('/api/profile/')
     employee.value.name = profileResponse.data.name || ''
     employee.value.email = profileResponse.data.email || ''
     employee.value.phone = profileResponse.data.phone || ''
-    userId.value = profileResponse.data.id || null // Set user ID from profile
+    userId.value = profileResponse.data.id || null
 
-    // Fetch settings data
     await fetchSettings()
-
-    // Fetch time records
     await fetchTimeRecords()
-
-    // Fetch today's status
     await fetchTodayStatus()
   } catch (err) {
     error.value = 'Failed to load employee data. Please try again later.'
@@ -337,7 +321,6 @@ const fetchTimeRecords = async () => {
       }
     })
 
-    // Calculate pay period based on records
     if (recentDays.value.length > 0) {
       const dates = recentDays.value.map((d) => new Date(d.date))
       const minDate = new Date(Math.min(...dates))
@@ -389,7 +372,6 @@ const checkIn = async () => {
     todayCheckIn.value = formatTime(record.check_in)
     currentSessionStart.value = record.check_in
 
-    // Update recent days
     const todayStr = formatDate(record.date)
     const existingIndex = recentDays.value.findIndex((day) => day.date === todayStr)
 
@@ -432,7 +414,6 @@ const checkOut = async () => {
 
     todayCheckOut.value = formatTime(record.check_out)
 
-    // Update recent days
     const todayStr = formatDate(record.date)
     const todayIndex = recentDays.value.findIndex((day) => day.date === todayStr)
 
@@ -460,6 +441,7 @@ const showTimeHistory = async () => {
     console.error('Error refreshing time records:', err)
   }
 }
+
 const checkPauseState = async () => {
   try {
     const response = await axiosInstance.get('api/attendance/resume/')
@@ -469,16 +451,136 @@ const checkPauseState = async () => {
     isTimerPaused.value = false
   }
 }
-// Add this method to your methods section
 const printTimeRecords = async () => {
   try {
-    window.print();
-    showNotification('PDF generated successfully');
+    const style = document.createElement('style')
+    style.innerHTML = `
+      @page {
+        size: A4 portrait;
+        margin: 1.5cm;
+      }
+      @media print {
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          color: #2c3e50;
+          background: #fff;
+        }
+        .print-header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .print-title {
+          font-size: 26px;
+          font-weight: bold;
+        }
+        .print-subtitle {
+          font-size: 16px;
+          color: #555;
+          margin-top: 5px;
+        }
+        .print-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 30px;
+          font-size: 14px;
+        }
+        .print-table th,
+        .print-table td {
+          border: 1px solid #ccc;
+          padding: 8px 12px;
+          text-align: left;
+        }
+        .print-table th {
+          background-color: #f0f0f0;
+        }
+        .print-table .print-total {
+          font-weight: bold;
+          background-color: #f9f9f9;
+        }
+        .status-completed {
+          color: #28a745;
+          font-weight: bold;
+        }
+        .status-in-progress {
+          color: #ffc107;
+          font-weight: bold;
+        }
+        .status-missing {
+          color: #dc3545;
+          font-weight: bold;
+        }
+      }
+    `
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
+
+    const tableHtml = `
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Check In</th>
+            <th>Check Out</th>
+            <th>Hours</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${recentDays.value.map(day => `
+            <tr>
+              <td>${day.date}</td>
+              <td>${day.day}</td>
+              <td>${day.checkIn || '--:-- --'}</td>
+              <td>${day.checkOut || '--:-- --'}</td>
+              <td>${formatHours(day.hours)}</td>
+              <td class="status-${day.status.toLowerCase().replace(' ', '-')}">
+                ${day.status}
+              </td>
+            </tr>
+          `).join('')}
+          <tr class="print-total">
+            <td colspan="4">Total Hours</td>
+            <td>${formatHours(totalHours.value)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    printWindow.document.open()
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Time Records - ${employee.value.name}</title>
+          <style>${style.innerHTML}</style>
+        </head>
+        <body>
+          <div class="print-header">
+            <div class="print-title">Time Records - ${employee.value.name}</div>
+            <div class="print-subtitle">
+              Pay Period: ${payPeriod.value.start || '--/--/----'} - ${payPeriod.value.end || '--/--/----'}
+            </div>
+          </div>
+          ${tableHtml}
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() {
+                window.print();
+              }, 300);
+            });
+          <\/script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+
+    showNotification('Printing time records...')
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    showNotification('Failed to generate PDF', 'error');
+    console.error('Error printing time records:', error)
+    showNotification('Failed to print time records', 'error')
   }
-};
+}
 
 onMounted(() => {
   fetchEmployeeData()
@@ -490,7 +592,7 @@ onMounted(() => {
 <template>
   <TheNavbar />
   <div class="min-h-screen bg-gray-50">
-    <!-- Loading overlay with enhanced animation -->
+    <!-- Loading overlay -->
     <div v-if="loading"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
       <div class="flex flex-col items-center">
@@ -499,7 +601,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Enhanced Notification -->
+    <!-- Notification -->
     <transition enter-active-class="transform ease-out duration-300 transition"
       enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
       enter-to-class="translate-y-0 opacity-100 sm:translate-x-0" leave-active-class="transition ease-in duration-100"
@@ -538,7 +640,7 @@ onMounted(() => {
       </div>
     </transition>
 
-    <!-- Error message with animation -->
+    <!-- Error message -->
     <transition enter-active-class="transform ease-out duration-300 transition"
       enter-from-class="translate-y-2 opacity-0" enter-to-class="translate-y-0 opacity-100"
       leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
@@ -562,7 +664,7 @@ onMounted(() => {
     <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <EmployeeInfo :employee="employee" :loading="loading" :error="error" />
 
-      <!-- Stats Cards Section with enhanced animations -->
+      <!-- Stats Cards Section -->
       <div class="grid grid-cols-1 md:grid-cols-3 mt-10 gap-6 mb-8">
         <!-- Current Pay Period Hours Card -->
         <div id="hoursworked"
@@ -585,7 +687,6 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Add Rate Per Hour Display -->
             <div class="mb-4">
               <p class="text-sm font-medium text-gray-500">Rate Per Hour</p>
               <p class="text-xl font-bold text-green-600">{{ formattedRate }}</p>
@@ -703,7 +804,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Recent Days Worked Table with enhanced design -->
+      <!-- Recent Days Worked Table -->
       <div id="workedhours"
         class="bg-white rounded-xl shadow-xl overflow-hidden mb-8 transition-all duration-300 hover:shadow-2xl">
         <div class="px-6 py-5 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center">
@@ -714,34 +815,24 @@ onMounted(() => {
             </svg>
             Recent Days Worked
           </h2>
-          <!-- In the Recent Days Worked section header -->
           <div class="px-4 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
-
-            <!-- NAME: separate on small screens, inline on large -->
             <div class="sm:hidden">
               <p
                 class="text-sm text-blue-600 font-medium border border-blue-300 rounded-md px-3 py-1 bg-blue-100 transition-colors">
                 Name: {{ employee.name || 'Not specified' }}
               </p>
             </div>
-
             <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-3 sm:space-y-0 w-full sm:w-auto">
-
-              <!-- Name for large screens -->
               <p
                 class="hidden sm:block text-sm text-blue-600 font-medium border-2 border-blue-300 rounded-md px-3 py-1 bg-blue-100 transition-colors">
                 Name: {{ employee.name || 'Not specified' }}
               </p>
-
-              <!-- Pay Period -->
               <div class="flex items-center space-x-2 bg-gray-700 px-3 py-1 rounded-full">
                 <span class="text-xs text-gray-300">Pay Period:</span>
                 <span class="text-xs font-medium text-white">
                   {{ payPeriod.start || '--/--/----' }} - {{ payPeriod.end || '--/--/----' }}
                 </span>
               </div>
-
-              <!-- Print Button -->
               <button @click="printTimeRecords"
                 class="flex items-center text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm transition-colors">
                 <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -750,7 +841,6 @@ onMounted(() => {
                 </svg>
                 Print
               </button>
-
             </div>
           </div>
         </div>
@@ -806,12 +896,18 @@ onMounted(() => {
                   </span>
                 </td>
               </tr>
+              <!-- Total row for display (hidden when printing) -->
+              <tr class="bg-gray-100 font-semibold no-print">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" colspan="4">Total Hours</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatHours(totalHours) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"></td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Current Time Tracking Banner with enhanced color scheme -->
+      <!-- Current Time Tracking Banner -->
       <transition enter-active-class="transform transition duration-500 ease-out"
         enter-from-class="-translate-y-10 opacity-0" enter-to-class="translate-y-0 opacity-100"
         leave-active-class="transform transition duration-300 ease-in" leave-from-class="translate-y-0 opacity-100"
@@ -840,7 +936,6 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <!-- Modified pause/resume buttons section -->
           <div class="flex justify-center space-x-4 mt-4">
             <button v-if="!isTimerPaused" @click="openPauseModal" :disabled="locationLoading"
               class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
@@ -877,7 +972,6 @@ onMounted(() => {
             </button>
           </div>
 
-          <!-- Show paused status if timer is paused -->
           <div v-if="isTimerPaused" class="mt-4 text-center">
             <span
               class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
@@ -890,6 +984,7 @@ onMounted(() => {
           </div>
         </div>
       </transition>
+
       <!-- Pause Timer Modal -->
       <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
         leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
@@ -925,7 +1020,8 @@ onMounted(() => {
           </div>
         </div>
       </transition>
-      <!-- Simplified Resume Timer Modal -->
+
+      <!-- Resume Timer Modal -->
       <transition enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
         leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
         <div v-if="showResumeModal"
