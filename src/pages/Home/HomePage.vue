@@ -253,6 +253,23 @@ const formatTime = (timeStr) => {
 }
 
 // Data Fetching Methods
+const fetchPayPeriodRange = async () => {
+  try {
+    const response = await axiosInstance.get('api/attendance/biweekly-date-range/')
+    payPeriod.value = {
+      start: response.data.start_date,
+      end: response.data.end_date
+    }
+    employee.value.employment.payPeriodStart = payPeriod.value.start
+    employee.value.employment.payPeriodEnd = payPeriod.value.end
+    return payPeriod.value
+  } catch (err) {
+    console.error('Error fetching pay period range:', err)
+    showNotification('Failed to load pay period range', 'error')
+    return null
+  }
+}
+
 const fetchSettings = async () => {
   try {
     const response = await axiosInstance.get('/api/user/settings/')
@@ -291,6 +308,7 @@ const fetchEmployeeData = async () => {
     userId.value = profileResponse.data.id || null
 
     await fetchSettings()
+    await fetchPayPeriodRange()
     await fetchTimeRecords()
     await fetchTodayStatus()
   } catch (err) {
@@ -305,7 +323,19 @@ const fetchEmployeeData = async () => {
 const fetchTimeRecords = async () => {
   try {
     const response = await axiosInstance.get('api/attendance/history/')
-    recentDays.value = response.data.map((record) => {
+
+    // Get pay period range
+    const payPeriodRange = await fetchPayPeriodRange()
+    const startDate = new Date(payPeriodRange.start)
+    const endDate = new Date(payPeriodRange.end)
+
+    // Filter records within the pay period range
+    const filteredRecords = response.data.filter(record => {
+      const recordDate = new Date(record.date)
+      return recordDate >= startDate && recordDate <= endDate
+    })
+
+    recentDays.value = filteredRecords.map((record) => {
       const fullDate = record.date
       const day = new Date(fullDate).toLocaleDateString('en-US', { weekday: 'long' })
       return {
@@ -321,13 +351,10 @@ const fetchTimeRecords = async () => {
       }
     })
 
-    if (recentDays.value.length > 0) {
-      const dates = recentDays.value.map((d) => new Date(d.date))
-      const minDate = new Date(Math.min(...dates))
-      const maxDate = new Date(Math.max(...dates))
-
-      payPeriod.value.start = formatDate(minDate)
-      payPeriod.value.end = formatDate(maxDate)
+    // Update pay period dates from the API response
+    if (payPeriodRange) {
+      payPeriod.value.start = payPeriodRange.start
+      payPeriod.value.end = payPeriodRange.end
       employee.value.employment.payPeriodStart = payPeriod.value.start
       employee.value.employment.payPeriodEnd = payPeriod.value.end
     }
@@ -451,6 +478,7 @@ const checkPauseState = async () => {
     isTimerPaused.value = false
   }
 }
+
 const printTimeRecords = async () => {
   try {
     const style = document.createElement('style')
