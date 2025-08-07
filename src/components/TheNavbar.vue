@@ -110,6 +110,20 @@ const clearHoveredItem = () => {
               class="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500">
             </div>
           </router-link>
+          <router-link to="/members" @mouseenter="setHoveredItem({ id: 'home', position: 0 })"
+            @mouseleave="clearHoveredItem"
+            class="relative text-white px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group">
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 group-hover:text-teal-300 transition-colors"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span class="relative z-10">Member</span>
+            <div
+              class="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500">
+            </div>
+          </router-link>
           <router-link to="/client" @mouseenter="setHoveredItem({ id: 'history', position: 140 })"
             @mouseleave="clearHoveredItem"
             class="relative text-white px-5 py-2 text-sm font-medium flex items-center transition-all duration-300 group hover:bg-gray-800/50">

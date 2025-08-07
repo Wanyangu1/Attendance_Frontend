@@ -12,6 +12,7 @@ import TimeSheet from '@/pages/Home/Provider/Timesheet/TimeSheet.vue'
 import AddNotes from '@/pages/Home/Provider/DailyAttendance/AddNotes.vue'
 import NewRecord from '@/pages/Home/Provider/DailyAttendance/NewRecord.vue'
 import ClientList from '@/pages/Home/Client/ClientList.vue'
+import ClientPage from '@/pages/Home/ClientPage.vue'
 
 const routes = [
   {
@@ -79,6 +80,11 @@ const routes = [
     path: '/client',
     name: 'client',
     component: ClientList,
+  },
+  {
+    path: '/members',
+    name: 'members',
+    component: ClientPage,
   },
 ]
 
