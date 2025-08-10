@@ -3,18 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import axiosInstance from '@/axiosconfig/axiosInstance'
 import TheNavbar from '@/components/TheNavbar.vue'
 import TheFooter from '@/components/TheFooter.vue'
-import EmployeeInfo from '@/components/EmployeeInfo.vue'
 
-// Employee and member data
-const employee = ref({
+// User data
+const user = ref({
   name: '',
   email: '',
-  phone: '',
 })
 
-// Member data
+// Time records data
+const timeRecords = ref([])
 const members = ref([])
-const searchQuery = ref('')
 const selectedMember = ref(null)
 const currentDate = computed(() => {
   return new Date().toLocaleDateString('en-US', {
@@ -34,22 +32,22 @@ const notification = ref({
   type: 'success',
 })
 const locationLoading = ref(false)
-const attendanceRecords = ref([])
 
 // Computed properties
-const filteredMembers = computed(() => {
-  if (!searchQuery.value) return members.value
-  return members.value.filter(member =>
-    member.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    member.member_id.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+const todaysRecords = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return timeRecords.value.filter(record => record.date === today)
 })
 
-const todaysAttendance = computed(() => {
-  const today = new Date().toLocaleDateString('en-US')
-  return attendanceRecords.value.filter(record =>
-    new Date(record.check_in_time).toLocaleDateString('en-US') === today
-  )
+const hasCheckedInToday = computed(() => {
+  return todaysRecords.value.some(record => record.check_in && !record.check_out)
+})
+
+const currentStatus = computed(() => {
+  if (todaysRecords.value.length === 0) return 'Not checked in today'
+  const lastRecord = todaysRecords.value[todaysRecords.value.length - 1]
+  if (lastRecord.check_out) return `Checked out at ${formatTime(lastRecord.check_out)}`
+  return `Checked in at ${formatTime(lastRecord.check_in)}`
 })
 
 // Helper Methods
@@ -65,33 +63,58 @@ const showNotification = (message, type = 'success') => {
 }
 
 const formatTime = (timeStr) => {
-  if (!timeStr) return '--:-- --'
-  const date = new Date(timeStr)
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  if (!timeStr) return '--:--'
+  // If time is already in HH:MM format, return as is
+  if (typeof timeStr === 'string' && timeStr.match(/^\d{2}:\d{2}$/)) {
+    return timeStr
+  }
+  // Try to parse as Date if not in simple format
+  try {
+    const date = new Date(timeStr)
+    if (isNaN(date.getTime())) return '--:--'
+    // Format as 24-hour time
+    return date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  } catch (e) {
+    console.error('Error formatting time:', e)
+    return '--:--'
+  }
 }
 
 const formatHours = (hours) => {
-  if (isNaN(hours) || hours === 0) return '0h 0m'
+  if (isNaN(hours)) return '0h 0m'
   const hrs = Math.floor(hours)
   const mins = Math.round((hours % 1) * 60)
   return `${hrs}h ${mins}m`
 }
 
 // Data Fetching Methods
-const fetchEmployeeData = async () => {
+const fetchUserData = async () => {
   try {
     loading.value = true
-    const profileResponse = await axiosInstance.get('/api/profile/')
-    employee.value.name = profileResponse.data.name || ''
-    employee.value.email = profileResponse.data.email || ''
-    employee.value.phone = profileResponse.data.phone || ''
+    const response = await axiosInstance.get('/api/profile/')
+    user.value.name = response.data.name || ''
+    user.value.email = response.data.email || ''
   } catch (err) {
-    error.value = 'Failed to load employee data. Please try again later.'
-    console.error('Error fetching employee data:', err)
-    showNotification('Failed to load employee data', 'error')
+    error.value = 'Failed to load user data. Please try again later.'
+    console.error('Error fetching user data:', err)
+    showNotification('Failed to load user data', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchTimeRecords = async () => {
+  try {
+    loading.value = true
+    const response = await axiosInstance.get('/api/member/history/')
+    timeRecords.value = response.data
+  } catch (err) {
+    console.error('Error fetching time records:', err)
+    showNotification('Failed to load time records', 'error')
   } finally {
     loading.value = false
   }
@@ -100,23 +123,13 @@ const fetchEmployeeData = async () => {
 const fetchMembers = async () => {
   try {
     loading.value = true
-    const response = await axiosInstance.get('/api/members/')
+    const response = await axiosInstance.get('/api/member/members/')
     members.value = response.data
   } catch (err) {
     console.error('Error fetching members:', err)
-    showNotification('Failed to load members', 'error')
+    showNotification('Failed to load members list', 'error')
   } finally {
     loading.value = false
-  }
-}
-
-const fetchAttendanceRecords = async () => {
-  try {
-    const response = await axiosInstance.get('/api/attendance/')
-    attendanceRecords.value = response.data
-  } catch (err) {
-    console.error('Error fetching attendance records:', err)
-    showNotification('Failed to load attendance records', 'error')
   }
 }
 
@@ -144,13 +157,11 @@ const getCurrentLocation = () => {
   })
 }
 
-// Member Actions
-const selectMember = (member) => {
-  selectedMember.value = member
-}
-
-const checkInMember = async () => {
-  if (!selectedMember.value) return
+const checkIn = async () => {
+  if (!selectedMember.value) {
+    showNotification('Please select a member first', 'error')
+    return
+  }
 
   try {
     let location = { latitude: null, longitude: null }
@@ -161,25 +172,31 @@ const checkInMember = async () => {
       showNotification('Could not get location. Check-in recorded without location.', 'warning')
     }
 
-    await axiosInstance.post('/api/attendance/checkin/', {
-      member_id: selectedMember.value.id,
-      employee_id: employee.value.id,
+    const nowIso = new Date().toISOString()
+
+    await axiosInstance.post('/api/member/checkin/', {
+      check_in: nowIso,
+      date: nowIso.split('T')[0],
+      member_id: selectedMember.value,
       latitude: location.latitude,
       longitude: location.longitude
     })
 
-    showNotification(`${selectedMember.value.name} checked in successfully`)
-    await fetchAttendanceRecords()
-    selectedMember.value = null
-    searchQuery.value = ''
+    showNotification('Checked in successfully')
+    await fetchTimeRecords()
   } catch (err) {
-    const errorMsg = err.response?.data?.error || 'Failed to check in member'
+    const errorMsg = err.response?.data?.error || 'Failed to check in'
     showNotification(errorMsg, 'error')
-    console.error('Error checking in member:', err)
+    console.error('Error checking in:', err)
   }
 }
 
-const checkOutMember = async (record) => {
+const checkOut = async () => {
+  if (!selectedMember.value) {
+    showNotification('Please select a member first', 'error')
+    return
+  }
+
   try {
     let location = { latitude: null, longitude: null }
     try {
@@ -189,25 +206,25 @@ const checkOutMember = async (record) => {
       showNotification('Could not get location. Check-out recorded without location.', 'warning')
     }
 
-    await axiosInstance.post('/api/attendance/checkout/', {
-      attendance_id: record.id,
+    await axiosInstance.post('/api/member/checkout/', {
       latitude: location.latitude,
-      longitude: location.longitude
+      longitude: location.longitude,
+      member_id: selectedMember.value
     })
 
-    showNotification(`${record.member_name} checked out successfully`)
-    await fetchAttendanceRecords()
+    showNotification('Checked out successfully')
+    await fetchTimeRecords()
   } catch (err) {
-    const errorMsg = err.response?.data?.error || 'Failed to check out member'
+    const errorMsg = err.response?.data?.error || 'Failed to check out'
     showNotification(errorMsg, 'error')
-    console.error('Error checking out member:', err)
+    console.error('Error checking out:', err)
   }
 }
 
 onMounted(() => {
-  fetchEmployeeData()
+  fetchUserData()
+  fetchTimeRecords()
   fetchMembers()
-  fetchAttendanceRecords()
 })
 </script>
 
@@ -284,251 +301,354 @@ onMounted(() => {
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-800">Member Sign-In System</h1>
-            <p class="text-gray-600">{{ currentDate }}</p>
-          </div>
-          <div class="mt-4 md:mt-0">
-            <p class="text-sm text-gray-500">Logged in as: <span class="font-medium text-blue-600">{{ employee.name
-                }}</span></p>
-          </div>
-        </div>
-
-        <!-- Quick Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-4 mb-8">
-          <button @click="fetchMembers"
-            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <!-- Header Section -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3 text-blue-600" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-              </path>
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Refresh Members
-          </button>
-          <button @click="fetchAttendanceRecords"
-            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            Member Time Tracking System
+          </h1>
+          <p class="text-gray-600 mt-2 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            Refresh Attendance
-          </button>
+            {{ currentDate }}
+          </p>
         </div>
+        <div class="mt-4 md:mt-0 bg-white rounded-lg shadow-sm p-4">
+          <p class="text-sm text-gray-600 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Logged in as: <span class="font-medium text-blue-600 ml-1">{{ user.name }}</span>
+          </p>
+        </div>
+      </div>
 
-        <!-- Member Search and Check-in -->
-        <div class="bg-gray-50 rounded-lg p-6 mb-8">
-          <h2 class="text-lg font-semibold text-gray-800 mb-4">Check In Member</h2>
+      <!-- Member Selection -->
+      <div class="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
+        <div class="mb-4">
+          <label for="member-select" class="block text-sm font-medium text-gray-700 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2 text-blue-500" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Select Member
+          </label>
+          <select id="member-select" v-model="selectedMember"
+            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border">
+            <option :value="null">-- Select a member --</option>
+            <option v-for="member in members" :key="member.id" :value="member.id">
+              {{ member.name }} ({{ member.email }})
+            </option>
+          </select>
+        </div>
+      </div>
 
-          <div class="mb-4">
-            <label for="member-search" class="block text-sm font-medium text-gray-700 mb-1">Search Members</label>
-            <div class="relative">
-              <input id="member-search" v-model="searchQuery" type="text"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search by name or member ID">
-              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <!-- Status Card -->
+      <div class="bg-white rounded-xl shadow-md p-6 mb-8 border border-gray-100">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center mb-4 md:mb-0">
+            <div class="bg-blue-100 p-3 rounded-full mr-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-gray-800">Current Status</h2>
+              <p class="text-gray-600">{{ currentStatus }}</p>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button @click="checkIn" :disabled="hasCheckedInToday || locationLoading || !selectedMember"
+              class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <span v-else class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
+                  </path>
                 </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Member List -->
-          <div v-if="filteredMembers.length > 0"
-            class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg mb-4">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member ID
-                  </th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="member in filteredMembers" :key="member.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ member.member_id }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ member.name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button @click="selectMember(member)"
-                      class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
-                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Select
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div v-else class="text-center py-4 text-gray-500">
-            No members found
-          </div>
-
-          <!-- Selected Member Check-in Section -->
-          <div v-if="selectedMember" class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div class="flex-1">
-                <h3 class="font-medium text-blue-800">Selected Member</h3>
-                <p class="text-lg font-semibold">{{ selectedMember.name }}</p>
-                <p class="text-sm text-gray-600">ID: {{ selectedMember.member_id }}</p>
-              </div>
-              <div class="flex gap-2">
-                <button @click="checkInMember" :disabled="locationLoading"
-                  class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
-                  <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                  </svg>
-                  <svg v-else class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  {{ locationLoading ? 'Getting location...' : 'Check In' }}
-                </button>
-                <button @click="selectedMember = null"
-                  class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center">
-                  <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Cancel
-                </button>
-              </div>
-            </div>
+                Check In
+              </span>
+            </button>
+            <button @click="checkOut" :disabled="!hasCheckedInToday || locationLoading || !selectedMember"
+              class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+              </svg>
+              <span v-else class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                </svg>
+                Check Out
+              </span>
+            </button>
           </div>
         </div>
+      </div>
 
-        <!-- Today's Attendance Records -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-          <div class="px-6 py-5 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center">
-            <h2 class="text-lg font-semibold text-white">Today's Attendance</h2>
-            <span class="px-3 py-1 bg-blue-500 text-white text-sm font-medium rounded-full">
-              {{ todaysAttendance.length }} records
-            </span>
+      <!-- Today's Time Records -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-100">
+        <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 flex justify-between items-center">
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+            <h2 class="text-lg font-semibold text-white">Today's Time Records</h2>
           </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out
-                  </th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Spent
-                  </th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="record in todaysAttendance" :key="record.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ record.member_name }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.member_id }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatTime(record.check_in_time) }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ record.check_out_time ? formatTime(record.check_out_time) : '--:-- --' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ record.hours_worked ? formatHours(record.hours_worked) : '--' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <button v-if="!record.check_out_time" @click="checkOutMember(record)" :disabled="locationLoading"
-                      class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed">
-                      <svg v-if="locationLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                        </path>
-                      </svg>
-                      <svg v-else class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                      </svg>
-                      Check Out
-                    </button>
-                    <span v-else class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                      Completed
-                    </span>
-                  </td>
-                </tr>
-                <tr v-if="todaysAttendance.length === 0">
-                  <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No attendance records for today
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <span class="px-3 py-1 bg-white bg-opacity-20 text-white text-sm font-medium rounded-full flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {{ todaysRecords.length }} records
+          </span>
         </div>
-
-        <!-- Member Attendance History -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="px-6 py-5 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center">
-            <h2 class="text-lg font-semibold text-white">Member Attendance History</h2>
-            <span class="px-3 py-1 bg-blue-500 text-white text-sm font-medium rounded-full">
-              {{ attendanceRecords.length }} records
-            </span>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out
-                  </th>
-                  <th scope="col"
-                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Spent
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="record in attendanceRecords" :key="record.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ new Date(record.check_in_time).toLocaleDateString() }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ record.member_name }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.member_id }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatTime(record.check_in_time) }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ record.check_out_time ? formatTime(record.check_out_time) : '--:-- --' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Date
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Check In
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Check Out
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Hours Worked
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="record in todaysRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ record.date }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {{ formatTime(record.check_in) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg v-if="record.check_out" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-red-500"
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-400" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {{ record.check_out ? formatTime(record.check_out) : '--:--' }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {{ record.hours_worked ? formatHours(record.hours_worked) : '--' }}
-                  </td>
-                </tr>
-                <tr v-if="attendanceRecords.length === 0">
-                  <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No attendance records found</td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="todaysRecords.length === 0">
+                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                  <div class="flex flex-col items-center justify-center py-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mb-2" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    No time records for today
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Time Records History -->
+      <div class="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+        <div class="px-6 py-4 bg-gradient-to-r from-gray-700 to-gray-800 flex justify-between items-center">
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white mr-3" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h2 class="text-lg font-semibold text-white">Time Records History</h2>
           </div>
+          <span class="px-3 py-1 bg-white bg-opacity-20 text-white text-sm font-medium rounded-full flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {{ timeRecords.length }} records
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Date
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Check In
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Check Out
+                  </div>
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    Hours Worked
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="record in timeRecords" :key="record.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ record.date }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-green-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {{ formatTime(record.check_in) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg v-if="record.check_out" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-red-500"
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-400" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {{ record.check_out ? formatTime(record.check_out) : '--:--' }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-blue-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ record.hours_worked ? formatHours(record.hours_worked) : '--' }}
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="timeRecords.length === 0">
+                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                  <div class="flex flex-col items-center justify-center py-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mb-2" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    No time records found
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
